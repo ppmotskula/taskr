@@ -1,6 +1,6 @@
 <?php
 
-class Model_Project
+class Taskr_Model_Project
 {
 
 

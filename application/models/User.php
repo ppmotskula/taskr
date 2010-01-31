@@ -1,6 +1,6 @@
 <?php
 
-class Model_User
+class Taskr_Model_User
 {
 
 

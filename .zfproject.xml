@@ -2,7 +2,7 @@
 <projectProfile>
   <projectDirectory>
     <projectProfileFile/>
-    <applicationDirectory classNamePrefix="">
+    <applicationDirectory classNamePrefix="Taskr_">
       <apisDirectory enabled="false"/>
       <configsDirectory>
         <applicationConfigFile type="ini"/>
@@ -10,18 +10,25 @@
       <controllersDirectory>
         <controllerFile controllerName="Index">
           <actionMethod actionName="index"/>
+        </controllerFile>
+        <controllerFile controllerName="Error"/>
+        <controllerFile controllerName="Task">
+          <actionMethod actionName="index"/>
           <actionMethod actionName="edit"/>
           <actionMethod actionName="add"/>
           <actionMethod actionName="start"/>
           <actionMethod actionName="hide"/>
         </controllerFile>
-        <controllerFile controllerName="Error"/>
         <controllerFile controllerName="Account">
           <actionMethod actionName="index"/>
           <actionMethod actionName="login"/>
-          <actionMethod actionName="reset"/>
+          <actionMethod actionName="logout"/>
           <actionMethod actionName="signup"/>
-          <actionMethod actionName="email"/>
+          <actionMethod actionName="resetPassword"/>
+          <actionMethod actionName="confirmEmail"/>
+        </controllerFile>
+        <controllerFile controllerName="Archive">
+          <actionMethod actionName="index"/>
         </controllerFile>
       </controllersDirectory>
       <formsDirectory enabled="false"/>
@@ -41,32 +48,41 @@
           <viewControllerScriptsDirectory forControllerName="Error">
             <viewScriptFile forActionName="error"/>
           </viewControllerScriptsDirectory>
-          <viewControllerScriptsDirectory forControllerName="Index">
-            <viewScriptFile forActionName="edit"/>
-          </viewControllerScriptsDirectory>
-          <viewControllerScriptsDirectory forControllerName="Index">
-            <viewScriptFile forActionName="add"/>
-          </viewControllerScriptsDirectory>
-          <viewControllerScriptsDirectory forControllerName="Index">
-            <viewScriptFile forActionName="start"/>
-          </viewControllerScriptsDirectory>
-          <viewControllerScriptsDirectory forControllerName="Index">
-            <viewScriptFile forActionName="hide"/>
+          <viewControllerScriptsDirectory forControllerName="Task">
+            <viewScriptFile forActionName="index"/>
           </viewControllerScriptsDirectory>
           <viewControllerScriptsDirectory forControllerName="Account">
             <viewScriptFile forActionName="index"/>
+          </viewControllerScriptsDirectory>
+          <viewControllerScriptsDirectory forControllerName="Archive">
+            <viewScriptFile forActionName="index"/>
+          </viewControllerScriptsDirectory>
+          <viewControllerScriptsDirectory forControllerName="Task">
+            <viewScriptFile forActionName="edit"/>
+          </viewControllerScriptsDirectory>
+          <viewControllerScriptsDirectory forControllerName="Task">
+            <viewScriptFile forActionName="add"/>
+          </viewControllerScriptsDirectory>
+          <viewControllerScriptsDirectory forControllerName="Task">
+            <viewScriptFile forActionName="start"/>
+          </viewControllerScriptsDirectory>
+          <viewControllerScriptsDirectory forControllerName="Task">
+            <viewScriptFile forActionName="hide"/>
           </viewControllerScriptsDirectory>
           <viewControllerScriptsDirectory forControllerName="Account">
             <viewScriptFile forActionName="login"/>
           </viewControllerScriptsDirectory>
           <viewControllerScriptsDirectory forControllerName="Account">
-            <viewScriptFile forActionName="reset"/>
+            <viewScriptFile forActionName="logout"/>
           </viewControllerScriptsDirectory>
           <viewControllerScriptsDirectory forControllerName="Account">
             <viewScriptFile forActionName="signup"/>
           </viewControllerScriptsDirectory>
           <viewControllerScriptsDirectory forControllerName="Account">
-            <viewScriptFile forActionName="email"/>
+            <viewScriptFile forActionName="resetPassword"/>
+          </viewControllerScriptsDirectory>
+          <viewControllerScriptsDirectory forControllerName="Account">
+            <viewScriptFile forActionName="confirmEmail"/>
           </viewControllerScriptsDirectory>
         </viewScriptsDirectory>
         <viewHelpersDirectory/>
@@ -99,6 +115,7 @@
       <testApplicationDirectory>
         <testApplicationBootstrapFile/>
         <testApplicationControllerDirectory>
+          <testApplicationControllerFile/>
           <testApplicationControllerFile/>
           <testApplicationControllerFile/>
         </testApplicationControllerDirectory>

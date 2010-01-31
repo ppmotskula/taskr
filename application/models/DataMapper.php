@@ -1,6 +1,6 @@
 <?php
 
-class Model_DataMapper
+class Taskr_Model_DataMapper
 {
 
 

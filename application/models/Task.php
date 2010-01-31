@@ -1,6 +1,6 @@
 <?php
 
-class Model_Task
+class Taskr_Model_Task
 {
 
 

@@ -1,6 +1,6 @@
 <?php
 
-class AccountController extends Zend_Controller_Action
+class TaskController extends Zend_Controller_Action
 {
 
     public function init()
@@ -13,35 +13,28 @@ class AccountController extends Zend_Controller_Action
         // action body
     }
 
-    public function loginAction()
+    public function editAction()
     {
         // action body
     }
 
-    public function logoutAction()
+    public function addAction()
     {
         // action body
     }
 
-    public function signupAction()
+    public function startAction()
     {
         // action body
     }
 
-    public function resetPasswordAction()
-    {
-        // action body
-    }
-
-    public function confirmEmailAction()
+    public function hideAction()
     {
         // action body
     }
 
 
 }
-
-
 
 
 
