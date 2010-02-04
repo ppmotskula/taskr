@@ -1,1 +1,52 @@
+<?php echo $this->doctype(); ?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <?php echo $this->headMeta(); ?>
+
+    <?php echo $this->headTitle(); ?>
+
+    <?php echo $this->headLink()->prependStylesheet(
+            $this->baseUrl() . '/css/style.css'); ?>
+
+    <?php echo $this->headScript(); ?>
+
+</head>
+<body<?php if ($this->onLoad) { echo ' onload="' . $this->onLoad . '"' ; } ?>>
+<div id="content">
+
+<div id="header">
+<?php if (isset($this->user)): ?>
+    <ul>
+        <li><b><?php echo $this->user->username ; ?></b></li>
+        <li><a href="<?php echo $this->url(array(
+            'controller' => 'archive',
+            'action' => 'index',
+        )); ?>">Archive</a></li>
+        <li><a href="<?php echo $this->url(array(
+            'controller' => 'account',
+            'action' => 'profile',
+        )); ?>">Profile</a></li>
+        <li><a href="<?php echo $this->url(array(
+            'controller' => 'account',
+            'action' => 'logout',
+        )); ?>">Sign out</a></li>
+    </ul>
+<?php endif; ?>
+    <h1>Taskr</h1>
+</div> <!-- /header -->
+
 <?php echo $this->layout()->content; ?>
+
+<div id="footer">
+    <ul>
+        <li>&copy; 2010 taskr.eu</li>
+        <li>About</li>
+        <li>Contact</li>
+        <li>Blog</li>
+        <li>Legal</li>
+    </ul>
+</div> <!-- /footer -->
+
+</div> <!-- /content -->
+</body>
+</html>

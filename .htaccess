@@ -1,0 +1,3 @@
+RewriteEngine On
+# redirect all requests to http://SITE/taskr/ to http://SITE/taskr/public/
+RewriteRule ^/?$ /taskr/public/ [R,L]

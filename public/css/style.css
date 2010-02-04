@@ -1,0 +1,81 @@
+div#content {
+width:600px;
+margin:auto;
+}
+
+div#header {
+}
+div#footer {
+text-align:center;
+margin-top:2em;
+}
+div#header ul, div#footer ul {
+font-size:90%;
+list-style:none;
+margin:0;
+}
+div#header ul li, div#footer ul li {
+display:inline;
+}
+div#header ul {
+float:right;
+}
+
+ul.tasklist {
+list-style:none;
+padding:0;
+margin:0;
+}
+ul.tasklist li {
+border-bottom:1px solid #ccc;
+margin:0 -0.5em;
+}
+ul.tasklist li span {
+display:block;
+padding:0 0.5em;
+}
+ul.tasklist li a span:hover {
+background:#eee;
+}
+ul.tasklist li a:link, ul.tasklist li a:visited {
+text-decoration:none;
+color:#000;
+}
+ul.actions-hover {
+font-size:80%;
+list-style:none;
+float:right;
+margin:0;
+padding:0;
+visibility:hidden;
+}
+ul.actions-hover li {
+display:inline;
+margin:0;
+padding:0;
+border:0;
+}
+div#active:hover ul.actions-hover,
+div#new:hover ul.actions-hover,
+ul.tasklist li:hover ul.actions-hover {
+visibility:visible;
+}
+div#tasklist input {
+float:right;
+}
+div#new textarea {
+width:90%;
+}
+div.scrap {
+font-size:80%;
+color:#666;
+}
+div#active, div#new, div#upcoming, div#finished {
+margin-bottom:0.5em;
+}
+div#editor textarea {
+width:100%;
+}
+.center {
+text-align:center;
+}
