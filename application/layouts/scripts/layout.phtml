@@ -1,9 +1,18 @@
-<?php echo $this->doctype(); ?>
+<?php /*
+    $this->headMeta()->appendHttpEquiv(
+        'Content-Type', 'text/html;charset=utf-8'
+    );
+    $this->headTitle()->setSeparator(' - ');
+    $this->headTitle('Taskr');
+*/ ?>
+<?php echo $this->doctype('XHTML1_STRICT'); ?>
+
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <?php echo $this->headMeta(); ?>
+    <?php echo $this->headMeta()->appendHttpEquiv(
+        'Content-Type', 'text/html;charset=utf-8'); ?>
 
-    <?php echo $this->headTitle(); ?>
+    <?php echo $this->headTitle('Taskr')->setSeparator(' - '); ?>
 
     <?php echo $this->headLink()->prependStylesheet(
             $this->baseUrl() . '/css/style.css'); ?>
@@ -33,6 +42,7 @@
     </ul>
 <?php endif; ?>
     <h1>Taskr</h1>
+    <p>take your time</p>
 </div> <!-- /header -->
 
 <?php echo $this->layout()->content; ?>

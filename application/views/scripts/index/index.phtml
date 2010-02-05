@@ -1,3 +1,44 @@
-<br /><br /><center>View script for controller <b>Index</b> and script/action name <b>index</b></center>
-<p>You see this because (a) you aren't logged in, and (b) the real nice-looking welcome page is still in the making.</p>
-<p>Patience, we're working on it!</p>
+<div class="wlcSidebar">
+<h2>Log in...</h2>
+<form method="post" action="<?php echo $this->url(array(
+    'controller' => 'account',
+    'action' => 'login',
+)) ?>">
+<p class="right">
+<label for="loginUsername">Username</label>:
+<input name="username" id="loginUsername" type="text" size="20" /><br />
+<label for="loginPassword">Password</label>:
+<input name="password" id="loginPassword" type="password" size="20" /><br />
+<label for="rememberme" class="info" title="Check this to log in automatically on your next visit. Don't use it on shared computers.">Remember me</label>:
+<input name="rememberme" id="rememberme" type="checkbox" />
+</p>
+<p class="center"><input name="submit" id="loginSubmit" type="submit" value="Log in" /></p>
+</form>
+<h2>...or sign up</h2>
+<form method="post" action="<?php echo $this->url(array(
+    'controller' => 'account',
+    'action' => 'signup',
+)) ?>">
+<p class="right">
+<label for="username">Username</label>:
+<input name="username" id="username" type="text" size="20" /><br />
+<label for="password">Password</label>:
+<input name="password" id="password" type="password" size="20" /><br />
+<label for="repeat">Repeat it</label>:
+<input name="repeat" id="repeat" type="password" size="20" /><br />
+<label for="email" class="info" title="You don't have to enter your e-mail address. But doing so will enable you to reset your password if you ever happen to forget it.">E-mail</label>:
+<input name="email" id="email" type="text" size="20" />
+</p>
+<p class="center"><input name="submit" id="submit" type="submit" value="Sign up" /></p>
+</form>
+</div> <!-- /wlcSidebar -->
+<p>Taskr is a task manager that puts <em>you</em> in control.</p>
+<p>Instead of forcing you to assign priorities to your tasks,
+and reassign them when things change (remember those "priority 0"
+items you've had to do <em>before</em> priority 1 stuff?),
+<strong>Taskr relies on your natural ability to focus on what really matters.</strong></p>
+<p>It is also a handy task timer, so if you use it you'll soon find
+out what you're really spending your time on. And, if you upgrade your
+free account to Taskr Pro, then you'll be able to track your time not only
+per task, but also per project.</p>
+

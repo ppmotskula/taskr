@@ -1,13 +1,23 @@
+body {
+font-family:sans-serif;
+}
+
 div#content {
 width:600px;
 margin:auto;
 }
 
 div#header {
+margin-bottom:1em;
+padding-bottom:1em;
+border-bottom:1px solid #ccc;
 }
 div#footer {
 text-align:center;
-margin-top:2em;
+margin-top:1em;
+padding-top:1em;
+border-top:1px solid #ccc;
+clear:both;
 }
 div#header ul, div#footer ul {
 font-size:90%;
@@ -19,6 +29,12 @@ display:inline;
 }
 div#header ul {
 float:right;
+}
+div#header h1 {
+margin:0 auto;
+}
+div#header p {
+margin:0 auto;
 }
 
 ul.tasklist {
@@ -78,4 +94,21 @@ width:100%;
 }
 .center {
 text-align:center;
+}
+.right {
+text-align:right;
+}
+.info {
+border-bottom:1px dashed #ccc
+}
+
+div.wlcSidebar {
+float:right;
+clear:both;
+margin:0 0 1em 1em;
+padding:0 0 0 1em;
+border-left:1px dashed #ccc;
+}
+div.wlcSidebar h2 {
+margin:0 auto;
 }
