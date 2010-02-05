@@ -1,7 +1,13 @@
 body {
 font-family:sans-serif;
 }
-
+a:link, a:visited {
+text-decoration:none;
+color:#06c;
+}
+a:hover, a:active {
+text-decoration:underline;
+}
 div#content {
 width:600px;
 margin:auto;
@@ -35,6 +41,7 @@ margin:0 auto;
 }
 div#header p {
 margin:0 auto;
+font-size:0.8em;
 }
 
 ul.tasklist {
@@ -99,7 +106,7 @@ text-align:center;
 text-align:right;
 }
 .info {
-border-bottom:1px dashed #ccc
+border-bottom:1px dashed #06c
 }
 
 div.wlcSidebar {
@@ -111,4 +118,14 @@ border-left:1px dashed #ccc;
 }
 div.wlcSidebar h2 {
 margin:0 auto;
+}
+
+div#login label {
+display:inline-block;
+width:10em;
+text-align:right;
+}
+
+.error {
+color:#f00;
 }

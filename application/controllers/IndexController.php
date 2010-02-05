@@ -4,7 +4,6 @@
  * @author Peeter P. Mõtsküla <ppm@taskr.eu>
  * @todo copyright & license
  * @version 0.1.0
- *
  */
 /**
  * Index controller

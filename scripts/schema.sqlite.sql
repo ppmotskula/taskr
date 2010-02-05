@@ -8,7 +8,7 @@ CREATE TABLE users (
     tz_diff INTEGER,
     added INTEGER,
     pro_until INTEGER,
-    credits INTEGER,
+    credits INTEGER
 );
 CREATE INDEX user_id on users (id);
 create index user_username on users (username);
@@ -25,7 +25,7 @@ CREATE TABLE tasks (
     last_stopped INTEGER,
     finished BOOLEAN,
     archived BOOLEAN,
-    duration INTEGER,
+    duration INTEGER
 );
 CREATE INDEX task_id on tasks (id);
 
@@ -34,6 +34,6 @@ CREATE TABLE projects (
     user_id INTEGER NOT NULL,
     title TEXT NOT NULL,
     finished BOOLEAN,
-    archived BOOLEAN,
+    archived BOOLEAN
 );
 CREATE INDEX project_id on projects (id);
