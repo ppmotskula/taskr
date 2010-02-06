@@ -24,9 +24,10 @@
 <div id="content">
 
 <div id="header">
-<?php if (isset($this->user)): ?>
+<?php if (Zend_Auth::getInstance()->hasIdentity()):
+     $user = Zend_Auth::getInstance()->getIdentity(); ?>
     <ul>
-        <li><b><?php echo $this->user->username ; ?></b></li>
+        <li><b><?php echo $user->username ; ?></b></li>
         <li><a href="<?php echo $this->url(array(
             'controller' => 'archive',
             'action' => 'index',

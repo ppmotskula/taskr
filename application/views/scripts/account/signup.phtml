@@ -1,1 +1,36 @@
-<br /><br /><center>View script for controller <b>Account</b> and script/action name <b>signup</b></center>
+<div id="signup">
+<h2>Sign up</h2>
+<form method="post" action="">
+<p>
+<label for="username">Username:</label>
+<input name="username" id="username" type="text" size="20" value="<?php
+echo $this->formData['username'] ?>" /><?php
+if (isset($this->formErrors['username'])) {
+    echo ' <span class="error">' . $this->formErrors['username'] . '</span>';
+} ?><br />
+<label for="password">Password:</label>
+<input name="password" id="password" type="password" size="20" value="<?php
+echo $this->formData['password'] ?>" /><?php
+if (isset($this->formErrors['password'])) {
+    echo ' <span class="error">' . $this->formErrors['password'] . '</span>';
+} ?><br />
+<label for="repeat">Repeat password:</label>
+<input name="repeat" id="repeat" type="password" size="20" value="<?php
+echo $this->formData['repeat'] ?>" /><?php
+if (isset($this->formErrors['repeat'])) {
+    echo ' <span class="error">' . $this->formErrors['repeat'] . '</span>';
+} ?><br />
+<label for="email">E-mail:</label>
+<input name="email" id="email" type="text" size="20" value="<?php
+echo $this->formData['email'] ?>" /><?php
+if (isset($this->formErrors['email'])) {
+    echo ' <span class="error">' . $this->formErrors['email'] . '</span>';
+} ?>
+<!-- @todo tzDiff -->
+</p>
+<p>
+<label></label>
+<input name="submit" id="submit" type="submit" value="Sign up" />
+</p>
+</form>
+</div> <!-- /signup -->

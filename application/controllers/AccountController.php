@@ -12,9 +12,15 @@ class AccountController extends Zend_Controller_Action
 {
     /**
      * @ignore (internal)
-     * var Taskr_Model_User
+     * @var Taskr_Model_User
      */
-    protected $_user;
+    protected static $_user;
+
+    /**
+     * @ignore (internal)
+     * @var Taskr_Model_DataMapper
+     */
+    protected static $_mapper;
 
     /**
      * Initializes the controller
@@ -22,8 +28,9 @@ class AccountController extends Zend_Controller_Action
     public function init()
     {
         if (Zend_Auth::getInstance()->hasIdentity()) {
-            $this->_user = Zend_Auth::getInstance()->getIdentity();
+            self::$_user = Zend_Auth::getInstance()->getIdentity();
         }
+        self::$_mapper = Taskr_Model_DataMapper::getInstance();
     }
 
     /**
@@ -40,8 +47,8 @@ class AccountController extends Zend_Controller_Action
     public function loginAction()
     {
         // forward to Task controller if user is logged in already
-        if (isset($this->_user)) {
-            $this->_forward('index', 'task');
+        if (isset(self::$_user)) {
+            $this->_helper->Redirector->gotoSimple('index', 'task');
         }
 
         // only process POST requests
@@ -77,7 +84,7 @@ class AccountController extends Zend_Controller_Action
                         Zend_Session::rememberMe();
                     }
                     // forward to Task controller
-                    $this->_forward('index', 'task');
+                    $this->_helper->Redirector->gotoSimple('index', 'task');
                 }
             }
         }
@@ -92,7 +99,9 @@ class AccountController extends Zend_Controller_Action
      */
     public function logoutAction()
     {
-        // @todo action body
+        Zend_Auth::getInstance()->clearIdentity();
+        Zend_Session::forgetMe();
+        $this->_helper->Redirector->gotoSimple('index', 'index');
     }
 
     /**
@@ -100,7 +109,63 @@ class AccountController extends Zend_Controller_Action
      */
     public function signupAction()
     {
-        // @todo action body
+        // forward to Task controller if user is logged in already
+        if (isset(self::$_user)) {
+            $this->_helper->Redirector->gotoSimple('index', 'task');
+        }
+
+        // only process POST requests
+        $request = $this->getRequest();
+        if ($request->isPost()) {
+            $formData = $request->getPost();
+            $username = $formData['username'];
+            if (strlen($username) < 6) {
+                $formErrors['username'] = 'At least 6 characters, please';
+            } elseif (self::$_mapper->findUserByUsername($username)) {
+                $formErrors['username'] = 'This username is already taken';
+            }
+            $password = $formData['password'];
+            if (strlen($password) < 6) {
+                $formErrors['password'] = 'At least 6 characters, please';
+            }
+            if ($password != $formData['repeat']) {
+                $formErrors['repeat'] = 'Passwords do not match';
+            }
+
+            // if email is given, check it for structural validity
+            if ($email = $formData['email']) {
+                if (!preg_match(
+                    '/^[a-zA-Z0-9._+-]+@(?:[a-zA-Z0-9_+-]+\.)+[a-zA-Z]{2,4}/',
+                    $email
+                )) {
+                    $formErrors['email'] = 'Not a valid email address';
+                }
+            }
+
+            // skip further processing if form data is invalid
+            if (!isset($formErrors)) {
+                // create and save new user
+                $user = new Taskr_Model_User(array(
+                    'username' => $username,
+                    'password' => Taskr_Auth_Adapter_Password::hashPassword($password),
+                    'email' => $email,
+                    // @todo add support for tzDiff
+                ));
+                self::$_mapper->saveUser($user);
+
+                if ($email) {
+                    // @todo send email for checking
+                    // and create a "check your email for confirmation link" task
+                }
+
+                // proceed to login
+                $this->loginAction();
+            }
+        }
+        // repopulate the form and error messages if any
+        $this->view->formData = $formData;
+        $this->view->formErrors = $formErrors;
+        // next, the signup form will be shown
     }
 
     /**

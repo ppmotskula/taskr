@@ -49,7 +49,7 @@ class Taskr_Model_DataMapper
         if (!is_a($db, 'Zend_Db_Adapter_Abstract')) {
             throw new Exception('Failed to initialise database adapter');
         }
-        $this->_db = $db;
+        self::$_db = $db;
     }
 
     /**
@@ -100,7 +100,7 @@ class Taskr_Model_DataMapper
     {
         $sql = 'SELECT * FROM users' .
             ' WHERE id = :id';
-        $row = $this->_db->fetchRow($sql, array(
+        $row = self::$_db->fetchRow($sql, array(
             ':id' => $id,
         ));
         return $this->_toUser($row);
@@ -116,7 +116,7 @@ class Taskr_Model_DataMapper
     {
         $sql = 'SELECT * FROM users' .
             ' WHERE username = :username';
-        $row = $this->_db->fetchRow($sql, array(
+        $row = self::$_db->fetchRow($sql, array(
             ':username' => $username,
         ));
         return $this->_toUser($row);
@@ -147,10 +147,10 @@ class Taskr_Model_DataMapper
         );
         if (NULL == $user->id) {
             unset($row['id']);
-            $this->_db->insert('users', $row);
-            $user->id = $this->_db->lastInsertId();
+            self::$_db->insert('users', $row);
+            $user->id = self::$_db->lastInsertId();
         } else {
-            $this->_db->update('users', $row, "id = $id");
+            self::$_db->update('users', $row, "id = $id");
         }
     }
 
@@ -197,7 +197,7 @@ class Taskr_Model_DataMapper
     {
         $sql = 'SELECT * FROM tasks' .
             ' WHERE id = :id';
-        $row = $this->_db->fetchRow($sql, array(
+        $row = self::$_db->fetchRow($sql, array(
             ':id' => $id,
         ));
         return $this->_toTask($row);
@@ -247,10 +247,10 @@ class Taskr_Model_DataMapper
         );
         if (NULL == $row['id']) {
             unset($row['id']);
-            $this->_db->insert('tasks', $row);
-            $task->id = $this->_db->lastInsertId();
+            self::$_db->insert('tasks', $row);
+            $task->id = self::$_db->lastInsertId();
         } else {
-            $this->_db->update('tasks', $row, "id = {$task->id}");
+            self::$_db->update('tasks', $row, "id = {$task->id}");
         }
     }
 
@@ -287,7 +287,7 @@ class Taskr_Model_DataMapper
     {
         $sql = 'SELECT * FROM projects' .
             ' WHERE id = :id';
-        $row = $this->_db->fetchRow($sql, array(
+        $row = self::$_db->fetchRow($sql, array(
             ':id' => $id,
         ));
         return $this->_toProject($row);
@@ -320,10 +320,10 @@ class Taskr_Model_DataMapper
         );
         if (NULL == $row['id']) {
             unset($row['id']);
-            $this->_db->insert('projects', $row);
-            $project->id = $this->_db->lastInsertId();
+            self::$_db->insert('projects', $row);
+            $project->id = self::$_db->lastInsertId();
         } else {
-            $this->_db->update('projects', $row, "id = {$project->id}");
+            self::$_db->update('projects', $row, "id = {$project->id}");
         }
     }
 
@@ -340,7 +340,7 @@ class Taskr_Model_DataMapper
             ' WHERE user_id = :userId' .
             ' AND (last_started > last_stopped' .
             ' OR last_started IS NOT NULL AND last_stopped IS NULL)';
-        $row = $this->_db->fetchRow($sql, array(
+        $row = self::$_db->fetchRow($sql, array(
             ':userId' => $user->id,
         ));
         if ($row) {
@@ -386,7 +386,7 @@ class Taskr_Model_DataMapper
             $params[':projectId'] = $project->id;
         }
         $sql .= ' ORDER BY last_stopped ASC';
-        $rows = $this->_db->fetchAll($sql, $params);
+        $rows = self::$_db->fetchAll($sql, $params);
 
         // construct and return result array
         $result = array();
@@ -417,7 +417,7 @@ class Taskr_Model_DataMapper
             $sql .= ' AND project_id = :projectId';
         }
         $sql .= ' ORDER BY last_stopped DESC';
-        $rows = $this->_db->fetchAll($sql, $params);
+        $rows = self::$_db->fetchAll($sql, $params);
 
         // construct and return result array
         $result = array();
@@ -465,7 +465,7 @@ class Taskr_Model_DataMapper
             $sql .= ' AND last_stopped < :toTs';
         }
         $sql .= ' ORDER BY project_id ASC, last_stopped ASC';
-        $rows = $this->_db->fetchAll($sql, $params);
+        $rows = self::$_db->fetchAll($sql, $params);
 
         // construct return array
         $result = array();
@@ -564,7 +564,7 @@ class Taskr_Model_DataMapper
         $params[':projectId'] = $project->id;
         $sql = 'SELECT SUM(duration) FROM tasks' .
             ' WHERE project_id = :projectId';
-        $result = $this->_db->fetchOne($sql, $params);
+        $result = self::$_db->fetchOne($sql, $params);
 
         return $result;
     }

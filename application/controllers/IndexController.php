@@ -10,7 +10,6 @@
  */
 class IndexController extends Zend_Controller_Action
 {
-
     /**
      * If the user is logged in, forwards to Task controller;
      * otherwise, the welcome page will be shown.
@@ -18,7 +17,7 @@ class IndexController extends Zend_Controller_Action
     public function indexAction()
     {
         if (Zend_Auth::getInstance()->hasIdentity()) {
-            $this->_forward('index', 'task');
+            $this->_helper->Redirector->gotoSimple('index', 'task');
         }
     }
 
