@@ -30,6 +30,11 @@
         <controllerFile controllerName="Archive">
           <actionMethod actionName="index"/>
         </controllerFile>
+        <controllerFile controllerName="About">
+          <actionMethod actionName="index"/>
+          <actionMethod actionName="terms"/>
+          <actionMethod actionName="help"/>
+        </controllerFile>
       </controllersDirectory>
       <formsDirectory enabled="false"/>
       <layoutsDirectory enabled="false"/>
@@ -84,6 +89,15 @@
           <viewControllerScriptsDirectory forControllerName="Account">
             <viewScriptFile forActionName="confirmEmail"/>
           </viewControllerScriptsDirectory>
+          <viewControllerScriptsDirectory forControllerName="About">
+            <viewScriptFile forActionName="index"/>
+          </viewControllerScriptsDirectory>
+          <viewControllerScriptsDirectory forControllerName="About">
+            <viewScriptFile forActionName="terms"/>
+          </viewControllerScriptsDirectory>
+          <viewControllerScriptsDirectory forControllerName="About">
+            <viewScriptFile forActionName="help"/>
+          </viewControllerScriptsDirectory>
         </viewScriptsDirectory>
         <viewHelpersDirectory/>
         <viewFiltersDirectory enabled="false"/>
@@ -115,6 +129,7 @@
       <testApplicationDirectory>
         <testApplicationBootstrapFile/>
         <testApplicationControllerDirectory>
+          <testApplicationControllerFile/>
           <testApplicationControllerFile/>
           <testApplicationControllerFile/>
           <testApplicationControllerFile/>

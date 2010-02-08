@@ -1,1 +1,70 @@
-<br /><br /><center>View script for controller <b>Task</b> and script/action name <b>index</b></center>
+<div id="tasklist">
+
+<?php if ($activeTask = $this->user->activeTask()) : ?>
+<div id="active">
+<form method="post" action="<?php echo $this->url(
+    array(
+        'controller'    => 'task',
+        'action'        => 'edit',
+    )); ?>"><div>
+<span class="actions">
+<input type="submit" name="submit" value="edit" accesskey="e" />
+<input type="submit" name="submit" value="stop" accesskey="p" />
+</span>
+<b>Working on:</b> <?php echo $activeTask->title; ?><span id="timer"></span>
+<?php if ($activeTask->scrap) { echo $this->showScrap($activeTask->scrap); } ?>
+</div></form>
+</div> <!-- /active -->
+<?php endif; ?>
+
+<div id="new">
+<b>New task:</b>
+<form method="post" action="<?php echo $this->url(
+    array(
+        'controller'    => 'task',
+        'action'        => 'add',
+    )); ?>"><div>
+<textarea rows="3" cols="60" name="task-text" accesskey="n"></textarea>
+<span class="actions">
+<input type="submit" name="add" value="add" accesskey="a" />
+</span>
+</div></form>
+</div> <!-- /new -->
+
+<?php if ($upcomingTasks = $this->user->upcomingTasks()) : ?>
+<div id="upcoming">
+<b>To do:</b>
+<ul class="tasklist">
+<?php $tabindex = 1; foreach($upcomingTasks as $task) : ?>
+    <li><a href="<?php echo $this->url(
+    array(
+        'controller'    => 'task',
+        'action'        => 'start',
+        'id'            => $task->id,
+    )); ?>" tabindex="<?php echo $tabindex++; ?>"><span><?php echo $task->title; ?></span></a></li>
+<?php endforeach; ?>
+</ul>
+</div> <!-- /upcoming -->
+<?php endif; ?>
+
+<?php if ($finishedTasks = $this->user->finishedTasks()) : ?>
+<div id="finished">
+<form method="post" action="<?php echo $this->url(
+    array(
+        'controller'    => 'task',
+        'action'        => 'hide',
+    )); ?>"><div>
+<span class="actions">
+<input type="submit" name="submit" value="hide" accesskey="h" />
+</span>
+<b>Finished:</b>
+<ul class="tasklist">
+<?php foreach($finishedTasks as $task) : ?>
+    <li><span><?php echo $task->title; ?> (<?php echo $this->showDuration($task->duration); ?>)</span></li>
+<?php endforeach; ?>
+</ul>
+</div></form>
+</div> <!-- /finished -->
+<?php endif; ?>
+
+</div> <!-- /tasklist -->

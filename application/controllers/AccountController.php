@@ -23,10 +23,17 @@ class AccountController extends Zend_Controller_Action
     protected static $_mapper;
 
     /**
+     * @ignore (internal)
+     * @var Zend_Controller_Action_Helper_Redirector
+     */
+    protected static $_redirector;
+
+    /**
      * Initializes the controller
      */
     public function init()
     {
+        self::$_redirector = $this->_helper->Redirector;
         if (Zend_Auth::getInstance()->hasIdentity()) {
             self::$_user = Zend_Auth::getInstance()->getIdentity();
         }
@@ -48,7 +55,7 @@ class AccountController extends Zend_Controller_Action
     {
         // forward to Task controller if user is logged in already
         if (isset(self::$_user)) {
-            $this->_helper->Redirector->gotoSimple('index', 'task');
+            self::$_redirector->gotoSimple('index', 'task');
         }
 
         // only process POST requests
@@ -84,7 +91,7 @@ class AccountController extends Zend_Controller_Action
                         Zend_Session::rememberMe();
                     }
                     // forward to Task controller
-                    $this->_helper->Redirector->gotoSimple('index', 'task');
+                    self::$_redirector->gotoSimple('index', 'task');
                 }
             }
         }
@@ -99,9 +106,20 @@ class AccountController extends Zend_Controller_Action
      */
     public function logoutAction()
     {
+        // bail out if nobody is logged in
+        if (!isset(self::$_user)) {
+            self::$_redirector->gotoSimple('index', 'index');
+        }
+
+        // stop active task if any
+        if ($task = self::$_user->activeTask()) {
+            $task->stop();
+        }
+
+        // clear identity, forget me, and go to welcome page
         Zend_Auth::getInstance()->clearIdentity();
         Zend_Session::forgetMe();
-        $this->_helper->Redirector->gotoSimple('index', 'index');
+        self::$_redirector->gotoSimple('index', 'index');
     }
 
     /**
@@ -111,19 +129,23 @@ class AccountController extends Zend_Controller_Action
     {
         // forward to Task controller if user is logged in already
         if (isset(self::$_user)) {
-            $this->_helper->Redirector->gotoSimple('index', 'task');
+            self::$_redirector->gotoSimple('index', 'task');
         }
 
         // only process POST requests
         $request = $this->getRequest();
         if ($request->isPost()) {
             $formData = $request->getPost();
+
+            // check username
             $username = $formData['username'];
             if (strlen($username) < 6) {
                 $formErrors['username'] = 'At least 6 characters, please';
             } elseif (self::$_mapper->findUserByUsername($username)) {
                 $formErrors['username'] = 'This username is already taken';
             }
+
+            // check password
             $password = $formData['password'];
             if (strlen($password) < 6) {
                 $formErrors['password'] = 'At least 6 characters, please';
@@ -135,11 +157,16 @@ class AccountController extends Zend_Controller_Action
             // if email is given, check it for structural validity
             if ($email = $formData['email']) {
                 if (!preg_match(
-                    '/^[a-zA-Z0-9._+-]+@(?:[a-zA-Z0-9_+-]+\.)+[a-zA-Z]{2,4}/',
+                    '/^[a-zA-Z0-9._+-]+@(?:[a-zA-Z0-9_+-]+\.)+[a-zA-Z]{2,4}$/',
                     $email
                 )) {
                     $formErrors['email'] = 'Not a valid email address';
                 }
+            }
+
+            // check acceptance of terms
+            if (1 != $formData['acceptterms']) {
+                $formErrors['acceptterms'] = 'Sorry, but you have to';
             }
 
             // skip further processing if form data is invalid

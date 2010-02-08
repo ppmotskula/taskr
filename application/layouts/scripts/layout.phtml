@@ -1,10 +1,7 @@
-<?php /*
-    $this->headMeta()->appendHttpEquiv(
-        'Content-Type', 'text/html;charset=utf-8'
-    );
-    $this->headTitle()->setSeparator(' - ');
-    $this->headTitle('Taskr');
-*/ ?>
+<?php if (Zend_Auth::getInstance()->hasIdentity()) {
+    $user = Zend_Auth::getInstance()->getIdentity();
+    $this->headTitle($user->username, 'PREPEND');
+} ?>
 <?php echo $this->doctype('XHTML1_STRICT'); ?>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -25,7 +22,7 @@
 
 <div id="header">
 <?php if (Zend_Auth::getInstance()->hasIdentity()):
-     $user = Zend_Auth::getInstance()->getIdentity(); ?>
+    $user = Zend_Auth::getInstance()->getIdentity(); ?>
     <ul>
         <li><b><?php echo $user->username ; ?></b></li>
         <li><a href="<?php echo $this->url(array(
@@ -34,8 +31,8 @@
         )); ?>">Archive</a></li>
         <li><a href="<?php echo $this->url(array(
             'controller' => 'account',
-            'action' => 'profile',
-        )); ?>">Profile</a></li>
+            'action' => 'index',
+        )); ?>">Account</a></li>
         <li><a href="<?php echo $this->url(array(
             'controller' => 'account',
             'action' => 'logout',
@@ -53,11 +50,20 @@
 
 <div id="footer">
     <ul>
-        <li>&copy; 2010 taskr.eu</li>
-        <li>About</li>
-        <li>Contact</li>
-        <li>Blog</li>
-        <li>Legal</li>
+        <li>&copy; 2010 taskr.eu |</li>
+        <li><a href="<?php echo $this->url(array(
+            'controller' => 'about',
+            'action' => 'index',
+        ));; ?>">About</a></li>
+        <li><a href="<?php echo $this->url(array(
+            'controller' => 'about',
+            'action' => 'terms',
+        ));; ?>">Terms</a></li>
+        <li><a href="<?php echo $this->url(array(
+            'controller' => 'about',
+            'action' => 'help',
+        ));; ?>">Help</a></li>
+        <li><a href="<?php echo $this->baseUrl(); ?>/blog/">Blog</a></li>
     </ul>
 </div> <!-- /footer -->
 

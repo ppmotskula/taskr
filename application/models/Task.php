@@ -24,7 +24,7 @@
  * @property bool $archived
  * @property int $duration in seconds
  */
-class Taskr_Model_Task
+class Taskr_Model_Task extends My_MagicAbstract
 {
     /**
      * @ignore (magic property)

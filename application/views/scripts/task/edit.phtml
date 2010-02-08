@@ -1,1 +1,12 @@
-<br /><br /><center>View script for controller <b>Task</b> and script/action name <b>edit</b></center>
+<div id="editor">
+<form action="" method="post">
+<p>Editing: <b><?php echo $this->task->title; ?></b><span id="timer"></span></p>
+<p><textarea name="scrap" id="scrap" rows="20" cols="60" accesskey="e"><?php
+echo $this->task->scrap; ?></textarea></p>
+<p>Mark as finished? <input type="checkbox" name="finish" value="1" accesskey="f" /></p>
+<p class="center">
+<input name="submit" type="submit" value="save" accesskey="s" />
+<input name="submit" type="submit" value="cancel" accesskey="c" />
+</p>
+</form>
+</div> <!-- /editor -->

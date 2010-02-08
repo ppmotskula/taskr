@@ -27,7 +27,12 @@
 <label for="repeat">Repeat it:</label>
 <input name="repeat" id="repeat" type="password" size="20" /><br />
 <label for="email" class="info" title="You don't have to enter your e-mail address. But doing so will enable you to reset your password if you ever happen to forget it.">E-mail:</label>
-<input name="email" id="email" type="text" size="20" />
+<input name="email" id="email" type="text" size="20" /><br />
+<label for="acceptTerms">I accept <a href="<?php echo $this->url(array(
+    'controller' => 'about',
+    'action' => 'terms',
+)); ?>" target="_blank">Taskr Terms of Use</a></label>
+<input name="acceptterms" id="acceptTerms" type="checkbox" value="1" />
 <!-- @todo javascript for timezone difference -->
 </p>
 <p class="center"><input name="submit" id="submit" type="submit" value="Sign up" /></p>

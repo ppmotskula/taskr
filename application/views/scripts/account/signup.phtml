@@ -25,6 +25,17 @@ if (isset($this->formErrors['repeat'])) {
 echo $this->formData['email'] ?>" /><?php
 if (isset($this->formErrors['email'])) {
     echo ' <span class="error">' . $this->formErrors['email'] . '</span>';
+} ?><br />
+<label for="acceptTerms">I accept <a href="<?php echo $this->url(array(
+    'controller' => 'about',
+    'action' => 'terms',
+)); ?>" target="_blank">Taskr Terms of Use</a></label>
+<input name="acceptterms" id="acceptTerms" type="checkbox" value="1"<?php
+if (isset($this->formData['acceptterms'])) {
+    echo ' checked';
+} ?> /><?php
+if (isset($this->formErrors['acceptterms'])) {
+    echo ' <span class="error">' . $this->formErrors['acceptterms'] . '</span>';
 } ?>
 <!-- @todo tzDiff -->
 </p>
