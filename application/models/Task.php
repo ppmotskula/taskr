@@ -16,6 +16,7 @@
  *      (each task must have zero or one projects)
  * @property string $title must not be NULL
  * @property string $scrap
+ * @property int $liveline if set, must be an Unix timestamp
  * @property int $deadline if set, must be an Unix timestamp
  * @property int $added Unix timestamp of when the task was added
  * @property int $lastStarted Unix timestamp
@@ -50,6 +51,11 @@ class Taskr_Model_Task extends My_MagicAbstract
      * @ignore (magic property)
      */
     protected $_magicScrap;
+
+    /**
+     * @ignore (magic property)
+     */
+    protected $_magicLiveline;
 
     /**
      * @ignore (magic property)

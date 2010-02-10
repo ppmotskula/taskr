@@ -11,7 +11,7 @@
 <input type="submit" name="submit" value="edit" accesskey="e" />
 <input type="submit" name="submit" value="stop" accesskey="p" />
 </span>
-<b>Working on:</b> <?php echo $activeTask->title; ?><span id="timer"></span>
+<b>Working on:</b> <?php echo $activeTask->title; ?><span id="timer" class="timeline"></span>
 <?php if ($activeTask->scrap) { echo $this->showScrap($activeTask->scrap); } ?>
 </div></form>
 </div> <!-- /active -->
@@ -41,7 +41,23 @@
         'controller'    => 'task',
         'action'        => 'start',
         'id'            => $task->id,
-    )); ?>" tabindex="<?php echo $tabindex++; ?>"><span><?php echo $task->title; ?></span></a></li>
+    )); ?>" tabindex="<?php echo $tabindex++; ?>"><span class="task<?php
+if ($task->liveline && $task->liveline > time()) {
+    echo ' future';
+} elseif ($task->deadline) {
+    if ($task->deadline < time()-86400) {
+        echo ' overdue';
+    } elseif ($task->deadline < time()) {
+        echo ' today';
+    }
+}
+?>"><?php echo $task->title; ?><?php
+if ($task->deadline) {
+    echo ' <span class="timeline">('
+        . $this->showDate($task->deadline)
+        . ')</span>';
+}
+?></span></a></li>
 <?php endforeach; ?>
 </ul>
 </div> <!-- /upcoming -->
@@ -60,7 +76,7 @@
 <b>Finished:</b>
 <ul class="tasklist">
 <?php foreach($finishedTasks as $task) : ?>
-    <li><span><?php echo $task->title; ?> (<?php echo $this->showDuration($task->duration); ?>)</span></li>
+    <li><span class="task"><?php echo $task->title; ?> <span class="timeline">(<?php echo $this->showDuration($task->duration); ?>)</span></span></li>
 <?php endforeach; ?>
 </ul>
 </div></form>

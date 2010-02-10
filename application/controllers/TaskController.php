@@ -91,6 +91,35 @@ class TaskController extends Zend_Controller_Action
             switch ($formData['submit']) {
                 case 'save':
                     $task->scrap = $formData['scrap'];
+
+                    $liveline = Taskr_Util::dateToTs($formData['liveline']);
+                    if (FALSE === $liveline) {
+                        $formErrors['liveline'] =
+                            'Liveline: invalid date entered';
+                    } else {
+                        $task->liveline = $liveline;
+                    }
+
+                    $deadline = Taskr_Util::dateToTs($formData['deadline']);
+                    if (FALSE === $deadline) {
+                        $formErrors['deadline'] =
+                            'Deadline: invalid date entered';
+                    } else {
+                        $task->deadline = $deadline;
+                    }
+
+                    if ($task->deadline > 0
+                            && $task->deadline < $task->liveline) {
+                        $formErrors['deadline'] =
+                            'Deadline cannot be before liveline';
+                    }
+
+                    // show the form again if errors found
+                    if (isset($formErrors)) {
+                        break;
+                    }
+
+                    // no errors, save and go to task list
                     if ($formData['finish']) {
                         $task->finish();
                     } else {
@@ -106,8 +135,11 @@ class TaskController extends Zend_Controller_Action
             }
         }
 
-        // display the edit form
+        // set view parameters and show edit form
+        $this->view->user = $user;
         $this->view->task = $task;
+        $this->view->formData = $formData;
+        $this->view->formErrors = $formErrors;
     }
 
     /**
@@ -130,11 +162,34 @@ class TaskController extends Zend_Controller_Action
                     'user' => self::$_user,
                 ));
 
+                // also create scrap if multi-line entry
                 if (strpos($taskText, "\n")) {
-                    $task->title = substr($taskText, 0, strpos($taskText, "\n"));
+                    $taskTitle = substr($taskText, 0, strpos($taskText, "\n"));
                     $task->scrap = preg_replace("/^.*?\n\s*/", '', $taskText);
                 } else {
-                    $task->title = $taskText;
+                    $taskTitle = $taskText;
+                }
+
+                // liveline & deadline detection
+                $dateChars = '[-0-9janfebmrpyulgsoctnvd]';
+                $matches = array();
+                if (preg_match("/^(.*) +($dateChars*)--($dateChars*)$/i",
+                        $taskTitle, $matches)) {
+                    $title = $matches[1];
+                    $liveline = Taskr_Util::dateToTs($matches[2]);
+                    $deadline = Taskr_Util::dateToTs($matches[3]);
+                }
+
+                if (isset($title)
+                    && (FALSE !== $liveline)
+                    && (FALSE !== $deadline)
+                ) {
+                    // liveline and/or deadline found
+                    $task->title = $title;
+                    $task->liveline = $liveline;
+                    $task->deadline = $deadline;
+                } else {
+                    $task->title = $taskTitle;
                 }
 
                 self::$_mapper->saveTask($task);

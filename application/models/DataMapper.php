@@ -170,6 +170,7 @@ class Taskr_Model_DataMapper
             'id' => $row['id'],
             'title' => $row['title'],
             'scrap' => $row['scrap'],
+            'liveline' => $row['liveline'],
             'deadline' => $row['deadline'],
             'added' => $row['added'],
             'lastStarted' => $row['last_started'],
@@ -237,6 +238,7 @@ class Taskr_Model_DataMapper
             'project_id' => $project->id,
             'title' => $task->title,
             'scrap' => $task->scrap,
+            'liveline' => $task->liveline,
             'deadline' => $task->deadline,
             'added' => $task->added,
             'last_started' => $task->lastStarted,
@@ -445,9 +447,9 @@ class Taskr_Model_DataMapper
     {
         // convert $fromDate and $toDate to timestamps if given
         if (NULL != $fromDate) {
-            $fromTs = My_Util::_ymdToTs($fromDate) - $user->tzDiff;
+            $fromTs = Taskr_Util::dateToTs($fromDate, $user->tzDiff);
             if (NULL != $toDate) {
-                $toTs = My_Util::_ymdToTs($fromDate) - $user->tzDiff + 86400;
+                $toTs = Taskr_Util::dateToTs($fromDate, $user->tzDiff) + 86400;
             }
         }
 

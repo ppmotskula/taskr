@@ -49,11 +49,11 @@ margin:0;
 }
 ul.tasklist li {
 border-bottom:1px solid #ccc;
-margin:0 -0.5em;
+_margin:0 -0.5em;
 }
-ul.tasklist li span {
+ul.tasklist li span.task {
 display:block;
-padding:0 0.5em;
+_padding:0 0.5em;
 }
 ul.tasklist li a span:hover {
 background:#eee;
@@ -62,11 +62,25 @@ ul.tasklist li a:link, ul.tasklist li a:visited {
 text-decoration:none;
 color:#000;
 }
+.timeline {
+font-size:0.9em;
+font-weight:normal;
+}
+ul.tasklist .future {
+color:#ccc;
+}
+ul.tasklist .today {
+font-weight:bold;
+}
+ul.tasklist .overdue {
+font-weight:bold;
+color:#f00;
+}
 div#tasklist .actions {
 display:inline-block;
 float:right;
 }
-div#new textarea, div#editor textarea {
+div#editor textarea {
 width:100%;
 }
 div.scrap {

@@ -19,6 +19,7 @@ CREATE TABLE tasks (
     project_id INTEGER,
     title TEXT NOT NULL,
     scrap TEXT,
+    liveline INTEGER,
     deadline INTEGER,
     added INTEGER,
     last_started INTEGER,
