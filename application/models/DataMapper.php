@@ -387,7 +387,7 @@ class Taskr_Model_DataMapper
             $sql .= ' AND project_id = :projectId';
             $params[':projectId'] = $project->id;
         }
-        $sql .= ' ORDER BY last_stopped ASC';
+        $sql .= ' ORDER BY (liveline>strftime(\'%s\',\'now\')) ASC, last_stopped ASC';
         $rows = self::$_db->fetchAll($sql, $params);
 
         // construct and return result array
