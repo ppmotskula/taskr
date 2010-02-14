@@ -62,9 +62,12 @@ ul.tasklist li a:link, ul.tasklist li a:visited {
 text-decoration:none;
 color:#000;
 }
-.timeline {
+.details {
 font-size:0.9em;
 font-weight:normal;
+}
+ul.tasklist .active {
+color:#090;
 }
 ul.tasklist .future {
 color:#ccc;

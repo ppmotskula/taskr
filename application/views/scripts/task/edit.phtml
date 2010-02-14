@@ -1,17 +1,33 @@
 <div id="editor">
 <form action="" method="post">
-<p>Editing: <b><?php echo $this->task->title; ?></b><span id="timer"></span></p>
+<p>Editing: <b><?php echo $this->task->title; ?></b><span id="timer"></span><br />
+Project:
+<?php if($unfinishedProjects = $this->user->unfinishedProjects()): ?>
+<label for="projects">choose</label>
+<select name="projects" id="projects" accesskey="p">
+    <option value="0"<?php if (!$this->task->project) { echo ' selected'; } ?>>(no project)</option>
+<?php foreach($unfinishedProjects as $project): ?>
+    <option value="<?php echo $project->id; ?>"<?php if ($project->id == $this->task->project->id) { echo ' selected'; } ?>><?php echo $project->title; ?></option>
+<?php endforeach; ?>
+</select>
+<?php if($this->user->isPro()) { echo 'or '; } ?>
+<?php endif; ?>
+<?php if($this->user->isPro() || !$unfinishedProjects): ?>
+<label for="project">create new</label>
+<input type="text" name="project" id="project" accesskey="n" />
+<?php endif; ?>
+</p>
 <p><textarea name="scrap" id="scrap" rows="20" cols="60" accesskey="e"><?php
 echo $this->task->scrap; ?></textarea><br />
 <label for="liveline" class="info" title="The date before which there's no sense in working on this task">Liveline:</label>
-<input type="text" name="liveline" id="liveline" value="<?php
+<input type="text" name="liveline" id="liveline" accesskey="l" size="10" value="<?php
 if (isset($this->formData['liveline'])) {
     echo $this->formData['liveline'];
 } else {
     echo date($this->showDate($this->task->liveline));
 } ?>" />
 <label for="deadline" class="info" title="The date when this task has to be finished">Deadline:</label>
-<input type="text" name="deadline" id="deadline" accesskey="d" value="<?php
+<input type="text" name="deadline" id="deadline" accesskey="d" size="10" value="<?php
 if (isset($this->formData['deadline'])) {
     echo $this->formData['deadline'];
 } else {
@@ -21,11 +37,14 @@ if (isset($this->formData['deadline'])) {
 <input type="checkbox" name="finish" id="finish" value="1" accesskey="f" /></p>
 <?php if (isset($this->formErrors)) {
     echo "<ul class=\"error\">\n";
+    if (isset($this->formErrors['project'])) {
+        echo '<li>' . $this->formErrors['project'] . "</li>\n";
+    }
     if (isset($this->formErrors['liveline'])) {
-        echo '<li> Liveline: ' . $this->formErrors['liveline'] . "</li>\n";
+        echo '<li>' . $this->formErrors['liveline'] . "</li>\n";
     }
     if (isset($this->formErrors['deadline'])) {
-        echo '<li> Deadline: ' . $this->formErrors['deadline'] . "</li>\n";
+        echo '<li>' . $this->formErrors['deadline'] . "</li>\n";
     }
     echo "</ul>\n";
 } ?>

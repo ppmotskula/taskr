@@ -66,9 +66,29 @@ class Taskr_Model_User extends My_MagicAbstract
      *
      * @return Taskr_Model_Task
      */
+    public function activeProject()
+    {
+        return Taskr_Model_DataMapper::getInstance()->activeProject($this);
+    }
+
+    /**
+     * Retrieves the user's active task from the mapper
+     *
+     * @return Taskr_Model_Task
+     */
     public function activeTask()
     {
         return Taskr_Model_DataMapper::getInstance()->activeTask($this);
+    }
+
+    /**
+     * Retrieves the user's unfinished projects from the mapper
+     *
+     * @return array of Taskr_Model_Project
+     */
+    public function unfinishedProjects()
+    {
+        return Taskr_Model_DataMapper::getInstance()->unfinishedProjects($this);
     }
 
     /**
@@ -103,20 +123,67 @@ class Taskr_Model_User extends My_MagicAbstract
     }
 
     /**
+     * Adds a new project
+     *
+     * @param string|array|Taskr_Model_Project $project
+     * @return Taskr_Model_Project or NULL if the user isn't allowed to add
+     * new projects
+     * @throws Exception if $project is neither an instance of
+     * Taskr_Model_Project nor an array or string suitable for creating one
+     */
+    public function addProject($project)
+    {
+        if (is_string($project)) {
+            // string to array
+            $project = array('title' => $project);
+        }
+
+        if (is_array($project)) {
+            // array to Taskr_Model_Project
+            $project = new Taskr_Model_Project($project);
+        }
+
+        if (!is_a($project, 'Taskr_Model_Project') || !isset($project->title)) {
+            // bail out -- not a project
+            throw new Exception('Invalid project');
+        }
+
+        if ($this->isPro() || !count($this->unfinishedProjects())) {
+            // user is Pro or has no unfinished projects, go ahead
+            $project->user = $this;
+            Taskr_Model_DataMapper::getInstance()->saveProject($project);
+            return $project;
+        } else {
+            return NULL;
+        }
+    }
+
+    /**
      * Adds a new task
      *
-     * @param array|Taskr_Model_Task $task
+     * @param string|array|Taskr_Model_Task $task
      * @return Taskr_Model_Task
+     * @throws Exception if $task is neither an instance of
+     * Taskr_Model_Task nor an array or string suitable for creating one
      */
-    public function addTask(Taskr_Model_Task $task)
+    public function addTask($task)
     {
+        if (is_string($task)) {
+            // string to array
+            $task = array('title' => $task);
+        }
+
         if (is_array($task)) {
+            // array to Taskr_Model_Task
             $task = new Taskr_Model_Task($task);
         }
-        if (!is_a($task, 'Taskr_Model_Task')) {
+
+        if (!is_a($task, 'Taskr_Model_Task') || !isset($task->title)) {
             throw new Exception('Invalid task');
         }
+
         $task->user = $this;
+        Taskr_Model_DataMapper::getInstance()->saveTask($task);
         return $task;
     }
 
@@ -160,6 +227,16 @@ class Taskr_Model_User extends My_MagicAbstract
             }
         }
         return $result;
+    }
+
+    /**
+     * Check the user's Pro status
+     *
+     * @return bool TRUE if the user currently has a Pro status, FALSE if not
+     */
+    public function isPro()
+    {
+        return $self->_proUntil > time();
     }
 
 }

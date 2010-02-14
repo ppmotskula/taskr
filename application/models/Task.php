@@ -110,9 +110,15 @@ class Taskr_Model_Task extends My_MagicAbstract
 
     /**
      * Tells the mapper to finish the task
+     *
+     * If the task is the last unfinished task in a project,
+     * finish the project as well.
      */
     public function finish()
     {
+        if ($this->project) {
+            $this->project->finish($this);
+        }
         Taskr_Model_DataMapper::getInstance()->finishTask($this);
     }
 

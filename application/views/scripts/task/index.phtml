@@ -11,7 +11,12 @@
 <input type="submit" name="submit" value="edit" accesskey="e" />
 <input type="submit" name="submit" value="stop" accesskey="p" />
 </span>
-<b>Working on:</b> <?php echo $activeTask->title; ?><span id="timer" class="timeline"></span>
+<b>Working on:</b> <?php
+echo $activeTask->title;
+if ($activeTask->project) {
+    echo " <span class=\"details\">(#{$activeTask->project->title})</span>";
+}
+?><span id="timer" class="details"></span>
 <?php if ($activeTask->scrap) { echo $this->showScrap($activeTask->scrap); } ?>
 </div></form>
 </div> <!-- /active -->
@@ -32,6 +37,7 @@
 </div> <!-- /new -->
 
 <?php if ($upcomingTasks = $this->user->upcomingTasks()) : ?>
+<?php $activeProject = $this->user->activeProject(); ?>
 <div id="upcoming">
 <b>To do:</b>
 <ul class="tasklist">
@@ -51,11 +57,28 @@ if ($task->liveline && $task->liveline > time()) {
         echo ' today';
     }
 }
+if ($activeProject && $activeProject->id == $task->project->id) {
+    echo ' active';
+}
 ?>"><?php echo $task->title; ?><?php
-if ($task->deadline) {
-    echo ' <span class="timeline">('
-        . $this->showDate($task->deadline)
-        . ')</span>';
+if ($task->liveline || $task->deadline || $task->project) {
+    unset($details);
+    if ($task->liveline) {
+        $details = $this->showDate($task->liveline) . ':';
+    }
+    if ($task->deadline) {
+        if (!$details) {
+            $details = ':';
+        }
+        $details .= $this->showDate($task->deadline);
+    }
+    if ($task->project) {
+        if ($details) {
+            $details .= ' ';
+        }
+        $details .= '#' . $task->project->title;
+    }
+    echo " <span class=\"details\">($details)</span>";
 }
 ?></span></a></li>
 <?php endforeach; ?>
@@ -76,7 +99,7 @@ if ($task->deadline) {
 <b>Finished:</b>
 <ul class="tasklist">
 <?php foreach($finishedTasks as $task) : ?>
-    <li><span class="task"><?php echo $task->title; ?> <span class="timeline">(<?php echo $this->showDuration($task->duration); ?>)</span></span></li>
+    <li><span class="task"><?php echo $task->title; ?> <span class="details">(<?php echo $this->showDuration($task->duration); ?>)</span></span></li>
 <?php endforeach; ?>
 </ul>
 </div></form>

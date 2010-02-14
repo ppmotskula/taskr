@@ -92,6 +92,35 @@ class TaskController extends Zend_Controller_Action
                 case 'save':
                     $task->scrap = $formData['scrap'];
 
+                    if ($formData['project']) {
+                        // new project creation requested
+                        if (!$project =
+                            self::$_user->addProject($formData['project'])
+                        ) {
+                            // couldn't create project, show error message
+                            $formErrors['project'] =
+                                'To create new projects, you must either ' .
+                                'finish an existing project or ' .
+                                'sign up for Taskr Pro.';
+                        }
+                    } elseif ($formData['projects']) {
+                        // existing project selected
+                        $project =
+                            self::$_mapper->findProject($formData['projects']);
+                    } else {
+                        // (no project) selected
+                        $project = NULL;
+                    }
+
+                    if ($task->project && $task->project != $project) {
+                        // task belonged to a project and
+                        // the task's project is being changed so
+                        // check if the old project must be finished
+                        $task->project->finish($task);
+                    }
+
+                    $task->project = $project;
+
                     $liveline = Taskr_Util::dateToTs($formData['liveline']);
                     if (FALSE === $liveline) {
                         $formErrors['liveline'] =
@@ -136,7 +165,7 @@ class TaskController extends Zend_Controller_Action
         }
 
         // set view parameters and show edit form
-        $this->view->user = $user;
+        $this->view->user = self::$_user;
         $this->view->task = $task;
         $this->view->formData = $formData;
         $this->view->formErrors = $formErrors;
@@ -164,18 +193,19 @@ class TaskController extends Zend_Controller_Action
 
                 // also create scrap if multi-line entry
                 if (strpos($taskText, "\n")) {
-                    $taskTitle = substr($taskText, 0, strpos($taskText, "\n"));
+                    $task->title = substr($taskText, 0, strpos($taskText, "\n"));
                     $task->scrap = preg_replace("/^.*?\n\s*/", '', $taskText);
                 } else {
-                    $taskTitle = $taskText;
+                    $task->title = $taskText;
                 }
 
                 // liveline & deadline detection
                 $dateChars = '[-0-9janfebmrpyulgsoctnvd]';
                 $matches = array();
-                if (preg_match("/^(.*) +($dateChars*)--($dateChars*)$/i",
-                        $taskTitle, $matches)) {
-                    $title = $matches[1];
+                if (preg_match(
+                        "/^(?:(.+) +)?($dateChars*):($dateChars*)(?: +(.+))?$/i",
+                        $task->title, $matches)) {
+                    $title = trim($matches[1] . ' ' . $matches[4]);
                     $liveline = Taskr_Util::dateToTs($matches[2]);
                     $deadline = Taskr_Util::dateToTs($matches[3]);
                 }
@@ -188,11 +218,54 @@ class TaskController extends Zend_Controller_Action
                     $task->title = $title;
                     $task->liveline = $liveline;
                     $task->deadline = $deadline;
-                } else {
-                    $task->title = $taskTitle;
                 }
 
-                self::$_mapper->saveTask($task);
+                // project detection
+                $matches = array();
+                if (preg_match('/^(?:(.+) +)?(#[^# ]*)(?: +(.+))?$/',
+                        $task->title, $matches)) {
+                    // #NULL or #projectName found in new task's title
+                    $title = trim($matches[1] . ' ' . $matches[3]);
+                    $projectName = substr($matches[2], 1);
+                } elseif ($activeProject = self::$_user->activeProject()) {
+                    // no # references found in title, use current user's
+                    // active project if any
+                    $title = $task->title;
+                    $projectName = $activeProject->title;
+                }
+
+                // project assignment
+                if (isset($projectName)) {
+                    $task->title = $title;
+                    // try to find an existing unfinished project first
+                    foreach (self::$_user->unfinishedProjects() as $project) {
+                        if ($projectName == $project->title) {
+                            $task->project = $project;
+                            break;
+                        }
+                    }
+                    if (!isset($task->project)) {
+                        // didn't find a suitable project, try to create one
+                        if ($project = self::$_user->addProject(array(
+                                'title' => $projectName))) {
+                            $task->project = $project;
+                        } else {
+                            // failed to create new project for the user,
+                            // add notice to the head of scrap
+                            $task->scrap =
+                                "To create new project '$projectName' " .
+                                'you must either finish another project or ' .
+                                "sign up for Taskr Pro.\n\n";
+                        }
+                    }
+                }
+
+                // try to add the new task
+                try {
+                    self::$_user->addTask($task);
+                } catch(Exception $e) {
+                    // just ignore the exception -- task couldn't be created
+                }
             }
         }
 

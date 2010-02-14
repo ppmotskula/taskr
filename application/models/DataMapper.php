@@ -211,9 +211,7 @@ class Taskr_Model_DataMapper
      */
     public function saveTask(Taskr_Model_Task &$task)
     {
-        $user = $task->user;
-
-        if (!is_a($user, Taskr_Model_User) || NULL == $user->id) {
+        if (!is_a($task->user, Taskr_Model_User) || NULL == $task->user->id) {
             throw new Exception('Cannot save unassigned task');
         }
         if (NULL == $task->title) {
@@ -234,8 +232,8 @@ class Taskr_Model_DataMapper
 
         $row = array(
             'id' => $task->id,
-            'user_id' => $user->id,
-            'project_id' => $project->id,
+            'user_id' => $task->user->id,
+            'project_id' => $task->project->id,
             'title' => $task->title,
             'scrap' => $task->scrap,
             'liveline' => $task->liveline,
@@ -310,9 +308,6 @@ class Taskr_Model_DataMapper
         if (NULL == $project->title) {
             throw new Exception('Cannot save project without title');
         }
-        if (NULL == $project->duration) {
-            $project->duration = 0;
-        }
 
         $row = array(
             'id' => $project->id,
@@ -365,6 +360,31 @@ class Taskr_Model_DataMapper
             return $task->project;
         }
         return NULL;
+    }
+
+    /**
+     * Fetches the given user's unfinished projects from the database
+     *
+     * @param Taskr_Model_User $user
+     * @return array of Taskr_Model_Project
+     */
+    public function unfinishedProjects(Taskr_Model_User $user)
+    {
+        // construct and execute SQL query
+        $params[':userId'] = $user->id;
+        $sql = 'SELECT * FROM projects' .
+            ' WHERE user_id = :userId' .
+            ' AND (finished IS NULL or finished = 0)' .
+            ' ORDER BY title ASC';
+        $rows = self::$_db->fetchAll($sql, $params);
+
+        // construct and return result array
+        $result = array();
+        foreach ($rows as $row) {
+            array_push($result, $this->_toProject($row));
+        }
+        return $result;
+
     }
 
     /**
@@ -535,6 +555,10 @@ class Taskr_Model_DataMapper
     public function finishTask(Taskr_Model_Task &$task)
     {
         if ($this->_stopTask($task)) {
+            if ($task->project) {
+                // task has a project, see if it should be finished too
+                $this->finishProject($task);
+            }
             $task->finished = TRUE;
             $this->saveTask($task);
         }
@@ -558,9 +582,9 @@ class Taskr_Model_DataMapper
      * Returns the sum of the durations of all tasks associated with
      * the given project
      *
-     * @param Taskr_Model_Project &$project
+     * @param Taskr_Model_Project $project
      */
-    public function projectDuration(Taskr_Model_Project &$project)
+    public function projectDuration(Taskr_Model_Project $project)
     {
         // construct and execute SQL query
         $params[':projectId'] = $project->id;
@@ -569,6 +593,46 @@ class Taskr_Model_DataMapper
         $result = self::$_db->fetchOne($sql, $params);
 
         return $result;
+    }
+
+    /**
+     * Finishes a project if $task is its last unfinished task
+     *
+     * Returns TRUE if $task was the project's last unfinished task or
+     * FALSE if not.
+     *
+     * @param Taskr_Model_Task $task
+     * @return bool
+     * @throw Exception if $task did not belong to a project or if the
+     * project was already finished.
+     */
+    public function finishProject(Taskr_Model_Task $task)
+    {
+        if (!$task->project) {
+            throw new Exception('Task had no project');
+        }
+
+        // count unfinished tasks in the same project
+        $params['projectId'] = $task->project->id;
+        $sql = 'SELECT COUNT(*) from tasks' .
+            ' WHERE project_id = :projectId' .
+            ' AND (finished = 0 OR finished IS NULL)';
+        $result = self::$_db->fetchOne($sql, $params);
+
+        if (1 == $result) {
+            // this is the last unfinished task of this project,
+            // so let's finish the project too
+            $task->project->finished = TRUE;
+            $this->saveProject($task->project);
+            return TRUE;
+        } elseif (1 < $result) {
+            // the project had other unfinished tasks as well,
+            // so we won't finish it yet
+            return FALSE;
+        } else {
+            // the project had no unfinished tasks
+            throw new Exception('The project had no unfinished tasks');
+        }
     }
 }
 
