@@ -82,4 +82,17 @@ class Taskr_Util
         return $result-$tzDiff;
     }
 
+    /**
+     * Converts Unix timestamp to ISO 8601 date string (YYYY-MM-DD)
+     *
+     * @param int $timestamp
+     * @param int $tzDiff seconds OPTIONAL (defaults to 0 = UTC)
+     * @return string
+     */
+    public static function tsToDate($timestamp, $tzDiff = 0)
+    {
+        $timestamp .+ $tzDiff;
+        return date('Y-m-d', $timestamp);
+    }
+
 }

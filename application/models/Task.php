@@ -120,6 +120,8 @@ class Taskr_Model_Task extends My_MagicAbstract
             $this->project->finish($this);
         }
         Taskr_Model_DataMapper::getInstance()->finishTask($this);
+        // @todo temporary hack -- autoarchive all finished tasks
+        $this->archive();
     }
 
     /**

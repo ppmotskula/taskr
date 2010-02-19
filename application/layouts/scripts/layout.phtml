@@ -26,6 +26,10 @@
     <ul>
         <li><b><?php echo $user->username ; ?></b></li>
         <li><a href="<?php echo $this->url(array(
+            'controller' => 'index',
+            'action' => 'index',
+        )); ?>">Active</a></li>
+        <li><a href="<?php echo $this->url(array(
             'controller' => 'archive',
             'action' => 'index',
         )); ?>">Archive</a></li>

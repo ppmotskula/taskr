@@ -450,27 +450,29 @@ class Taskr_Model_DataMapper
     }
 
     /**
-     * Fetches the given user's archived tasks completed between $fromDate and
-     * $toDate from the database.
+     * Fetches the given user's archived tasks completed between $fromTs and
+     * $toTs from the database.
      *
-     * If $fromDate is not set, all archived tasks will be returned.
+     * If $fromTs is not set, all archived tasks will be returned.
      *
-     * If $toDate is not set, all archived tasks completed no earlier than
-     * $fromDate will be returned.
+     * If $toTs is not set, all archived tasks completed no earlier than
+     * $fromTs will be returned.
      *
      * @param Taskr_Model_User $user
-     * @param string $fromDate format: YYYY-MM-DD
-     * @param string $toDate format: YYYY-MM-DD
+     * @param int $fromTs Unix timestamp
+     * @param int $toTs Unix timestamp
      * @return array of Taskr_Model_Task
      */
-    public function archivedTasks(Taskr_Model_User $user, $fromDate = NULL, $toDate = NULL)
+    public function archivedTasks(Taskr_Model_User $user, $fromTs, $toTs)
     {
-        // convert $fromDate and $toDate to timestamps if given
-        if (NULL != $fromDate) {
-            $fromTs = Taskr_Util::dateToTs($fromDate, $user->tzDiff);
-            if (NULL != $toDate) {
-                $toTs = Taskr_Util::dateToTs($fromDate, $user->tzDiff) + 86400;
-            }
+        // @todo point $fromTs to start-of-day
+        if (!$fromTs) {
+            $fromTs = 0;
+        }
+
+        // use current time for $toTs if undefined;
+        if (!$toTs) {
+            $toTs = time();
         }
 
         // construct and execute SQL query
@@ -493,6 +495,56 @@ class Taskr_Model_DataMapper
         $result = array();
         foreach ($rows as $row) {
             array_push($result, $this->_toTask($row));
+        }
+
+        return $result;
+    }
+
+    /**
+     * Fetches the given user's archived projects completed between $fromTs and
+     * $toTs from the database.
+     *
+     * If $fromTs is not set, all archived projects will be returned.
+     *
+     * If $toTs is not set, all archived projects completed no earlier than
+     * $fromTs will be returned.
+     *
+     * @param Taskr_Model_User $user
+     * @param int $fromTs Unix timestamp
+     * @param int $toTs Unix timestamp
+     * @return array of Taskr_Model_Project
+     */
+    public function archivedProjects(Taskr_Model_User $user, $fromTs, $toTs)
+    {
+        // @todo point $fromTs to start-of-day
+        if (!$fromTs) {
+            $fromTs = 0;
+        }
+
+        // use current time for $toTs if undefined;
+        if (!$toTs) {
+            $toTs = time();
+        }
+
+        // construct and execute SQL query
+        $params[':userId'] = $user->id;
+        $sql = 'SELECT * FROM projects' .
+            ' WHERE user_id = :userId';
+        if (isset($fromTs)) {
+            $params[':fromTs'] = $fromTs;
+            $sql .= ' AND finished >= :fromTs';
+        }
+        if (isset($toTs)) {
+            $params[':toTs'] = $toTs;
+            $sql .= ' AND finished < :toTs';
+        }
+        $sql .= ' ORDER BY finished ASC';
+        $rows = self::$_db->fetchAll($sql, $params);
+
+        // construct return array
+        $result = array();
+        foreach ($rows as $row) {
+            array_push($result, $this->_toProject($row));
         }
 
         return $result;
@@ -622,7 +674,7 @@ class Taskr_Model_DataMapper
         if (1 == $result) {
             // this is the last unfinished task of this project,
             // so let's finish the project too
-            $task->project->finished = TRUE;
+            $task->project->finished = $task->lastStopped;
             $this->saveProject($task->project);
             return TRUE;
         } elseif (1 < $result) {

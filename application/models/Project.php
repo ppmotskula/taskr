@@ -13,7 +13,8 @@
  * @property Taskr_Model_User $user owner of this project
  *      (each project must have one user)
  * @property string $title must not be NULL
- * @property bool $finished
+ * @property int $finished
+ * Unix timestamp of when the last task in this project was finished
  * @property-read int $duration in seconds
  */
 class Taskr_Model_Project extends My_MagicAbstract

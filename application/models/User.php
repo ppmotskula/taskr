@@ -112,14 +112,27 @@ class Taskr_Model_User extends My_MagicAbstract
     }
 
     /**
-     * Retrieves the user's archived tasks from the mapper
+     * Retrieves the user's archived projects from the mapper
      *
-     * @param int $fromDate Unix timestamp of oldest task to retrieve
+     * @param int $fromTs Unix timestamp of oldest task to retrieve
      * @return array of Taskr_Model_Task
      */
-    public function archivedTasks($fromDate)
+    public function archivedProjects($fromTs = NULL, $toTs = NULL)
     {
-        return Taskr_Model_DataMapper::getInstance()->archivedTasks($this, $fromDate);
+        return Taskr_Model_DataMapper::getInstance()->
+                archivedProjects($this, $fromTs, $toTs);
+    }
+
+    /**
+     * Retrieves the user's archived tasks from the mapper
+     *
+     * @param int $fromTs Unix timestamp of oldest task to retrieve
+     * @return array of Taskr_Model_Task
+     */
+    public function archivedTasks($fromTs = NULL, $toTs = NULL)
+    {
+        return Taskr_Model_DataMapper::getInstance()->
+                archivedTasks($this, $fromTs, $toTs);
     }
 
     /**

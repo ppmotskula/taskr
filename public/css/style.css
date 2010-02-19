@@ -90,7 +90,7 @@ div.scrap {
 font-size:80%;
 color:#666;
 }
-div#active, div#new, div#upcoming, div#finished {
+div#active, div#new, div#upcoming, div#finished, div#tasks, div#projects {
 margin-bottom:0.5em;
 }
 .center {

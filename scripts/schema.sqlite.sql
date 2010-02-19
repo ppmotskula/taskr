@@ -10,7 +10,6 @@ CREATE TABLE users (
     pro_until INTEGER,
     credits INTEGER
 );
-CREATE INDEX user_id on users (id);
 create index user_username on users (username);
 
 CREATE TABLE tasks (
@@ -28,13 +27,11 @@ CREATE TABLE tasks (
     archived BOOLEAN,
     duration INTEGER
 );
-CREATE INDEX task_id on tasks (id);
 
 CREATE TABLE projects (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     title TEXT NOT NULL,
-    finished BOOLEAN,
+    finished INTEGER,
     archived BOOLEAN
 );
-CREATE INDEX project_id on projects (id);

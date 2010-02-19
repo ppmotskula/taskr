@@ -1,1 +1,79 @@
-<br /><br /><center>View script for controller <b>Archive</b> and script/action name <b>index</b></center>
+<p>Projects and tasks finished on <?php
+$today = Taskr_Util::dateToTs($this->date);
+echo $this->date;
+?>
+<?php if ($today - 86400 >= $this->user->added): ?>
+ <a href="<?php
+echo $this->url(array(
+    'controller'    => 'archive',
+    'action'        => 'index',
+    'date'          => Taskr_Util::tsToDate($today - 86400),
+)); ?>">«</a>
+<?php endif; ?>
+<?php if ($today + 86400 <= time()): ?>
+ <a href="<?php
+echo $this->url(array(
+    'controller'    => 'archive',
+    'action'        => 'index',
+    'date'          => Taskr_Util::tsToDate($today + 86400),
+)); ?>">»</a>
+<?php endif; ?></p>
+
+<div id="tasklist">
+
+<?php if ($archivedProjects =
+        $this->user->archivedProjects($today, $today + 86400)): ?>
+<div id="projects">
+<b>Projects:</b>
+<ul class="tasklist">
+<?php
+foreach($archivedProjects as $project) {
+    echo '    <li>' . $project->title . ' <span class="details">(' .
+        $this->showDuration($project->duration) . ')</span></li>' . "\n";
+}
+?>
+</ul>
+</div> <!-- /projects -->
+<?php endif; ?>
+
+<?php if ($archivedTasks =
+        $this->user->archivedTasks($today, $today + 86400)): ?>
+<div id="tasks">
+<b>Tasks:</b>
+<ul class="tasklist">
+<?php
+foreach($archivedTasks as $task):
+$selected = $task->id == $this->taskId;
+?>
+    <li><?php if (!$selected): ?>
+<a href="<?php echo $this->url(array(
+    'controller'    => 'archive',
+    'action'        => 'index',
+    'id'            => $task->id,
+)); ?>">
+<?php endif; ?><span class="task<?php
+if ($task->scrap) {
+    echo ' today';
+}
+?>"><?php
+echo $task->title; ?><?php
+$details = $this->showDuration($task->duration);
+if ($task->project) {
+    $details = "#{$task->project->title} $details";
+}
+echo " <span class=\"details\">($details)</span>";
+?></span><?php
+if ($selected) {
+    if ($task->scrap) {
+        echo $this->showScrap($task->scrap);
+    }
+} else {
+    echo '</a>';
+}
+?></li>
+<?php endforeach; ?>
+</ul>
+</div> <!-- /tasks -->
+<?php endif; ?>
+
+</div> <!-- /tasklist -->
