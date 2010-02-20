@@ -174,7 +174,7 @@ class AccountController extends Zend_Controller_Action
                 // create and save new user
                 $user = new Taskr_Model_User(array(
                     'username' => $username,
-                    'password' => Taskr_Auth_Adapter_Password::hashPassword($password),
+                    'password' => Taskr_Util::hashPassword($password),
                     'email' => $email,
                     // @todo add support for tzDiff
                 ));

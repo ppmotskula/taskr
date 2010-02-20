@@ -95,4 +95,33 @@ class Taskr_Util
         return date('Y-m-d', $timestamp);
     }
 
+    /**
+     * Salts the password with 4 random bytes, then hashes it with SHA-1
+     * @param string $password
+     * @return string
+     */
+    public static function hashPassword($password)
+    {
+        $salt = '';
+        for ($i = 0; $i < 4; $i++) {
+            $salt .= bin2hex(chr(rand(0, 256)));
+        }
+        $hash = sha1($password . $salt) . $salt;
+        return $hash;
+    }
+
+    /**
+     * Returns TRUE if the password matches the salted hash, FALSE otherwise
+     * @param string $password
+     * @param string $saltedHash
+     * @return bool
+     */
+    public static function testPassword($password, $saltedHash)
+    {
+        $hash = substr($saltedHash, 0, 40);
+        $salt = substr($saltedHash, 40);
+        $test = sha1($password . $salt);
+        return $test == $hash;
+    }
+
 }
