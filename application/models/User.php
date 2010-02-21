@@ -249,7 +249,7 @@ class Taskr_Model_User extends My_MagicAbstract
      */
     public function isPro()
     {
-        return $self->_proUntil > time();
+        return $this->proUntil > time();
     }
 
 }
