@@ -14,6 +14,7 @@
  * @property string $password must not be NULL;
  *      contains salted and hashed password
  * @property string $email email address
+ * @property string $emailTmp temporary, unconfirmed email address
  * @property int $tzDiff difference of user's time from UTC in seconds
  * @property int $added Unix timestamp of when user was created
  * @property int $proUntil Unix timestamp of when user's "Pro" status expires
@@ -40,6 +41,11 @@ class Taskr_Model_User extends My_MagicAbstract
      * @ignore (magic property)
      */
     protected $_magicEmail;
+
+    /**
+     * @ignore (magic property)
+     */
+    protected $_magicEmailTmp;
 
     /**
      * @ignore (magic property)
@@ -253,4 +259,3 @@ class Taskr_Model_User extends My_MagicAbstract
     }
 
 }
-

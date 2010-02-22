@@ -5,6 +5,7 @@ CREATE TABLE users (
     username TEXT UNIQUE NOT NULL,
     password TEXT,
     email TEXT,
+    email_tmp TEXT,
     tz_diff INTEGER,
     added INTEGER,
     pro_until INTEGER,

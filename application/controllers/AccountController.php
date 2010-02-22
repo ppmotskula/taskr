@@ -146,7 +146,16 @@ END;
                         if ($formData['rememberme']) {
                             Zend_Session::rememberMe();
                         }
-                        // forward to Task controller
+                        // check which controller/action to forward to
+                        $next = $this->_getParam('next');
+                        if ('confirmEmail' == $next) {
+                            self::$_redirector->gotoSimple('confirm-email',
+                                'account', NULL, array(
+                                'uid' => $this->_getParam('uid'),
+                                'key' => $this->_getParam('key'),
+                            ));
+                        }
+                        // default: forward to Task controller
                         self::$_redirector->gotoSimple('index', 'task');
                     }
                 }
@@ -232,15 +241,12 @@ END;
                 $user = new Taskr_Model_User(array(
                     'username' => $username,
                     'password' => Taskr_Util::hashPassword($password),
-                    'email' => $email,
                     // @todo add support for tzDiff
                 ));
                 self::$_mapper->saveUser($user);
 
-                if ($email) {
-                    // @todo send email for checking
-                    // and create a "check your email for confirmation link" task
-                }
+                // process newly-entered email
+                $this->_addEmail($user, $email);
 
                 // proceed to login
                 $this->loginAction();
@@ -317,20 +323,111 @@ END;
      */
     public function confirmEmailAction()
     {
-        /*
-         * @todo
-         *
-         * if !key
-         *   go to frontpage
-         * elseif !loggedIn
-         *   show login form with redirect-upon-success set to confirmemailaction
-         * elseif user has no pending email change request
-         *   go to tasklist
-         * else
-         *   set email = pendingemail
-         *   go to tasklist
-         * fi
-         */
+        // get parameters from the URL
+        $uid = $this->_getParam('uid');
+        $key = $this->_getParam('key');
+
+        // require login if user is not logged in already
+        if (!isset(self::$_user)) {
+            $url = $this->view->url(array(
+                'action' => 'login',
+                'controller' => 'account',
+                'next' => 'confirmEmail',
+                'uid' => $uid,
+                'key' => $key,
+            ));
+            $this->view->message = <<<END
+Please <a href="$url">sign in</a> to confirm your email address.
+END;
+            return;
+        }
+
+        // bail out if uid or key is missing or invalid
+        if ($uid != self::$_user->id ||
+            !$key ||
+            !Taskr_Util::testPassword(self::$_user->emailTmp, $key)
+        ) {
+            $this->view->message = <<<END
+Invalid key. You might have followed an outdated email confirmation link.
+Your email has <em>not</em> been confirmed.
+END;
+            return;
+        }
+
+        self::$_user->email = self::$_user->emailTmp;
+        self::$_user->emailTmp = '';
+        self::$_mapper->saveUser(self::$_user);
+        $this->view->message = <<<END
+Congratulations! You've successfully confirmed your email address.
+END;
+    }
+
+    /**
+     * Add an email address and send confirmation email
+     *
+     * @param Taskr_Model_User &$user
+     * @param string $email Address to be added
+     * @return bool TRUE if successful, FALSE if not
+     */
+    protected function _addEmail(Taskr_Model_User &$user, $email)
+    {
+        // bail out if $email is not an email address
+        if (!preg_match(
+            '/^[a-zA-Z0-9._+-]+@(?:[a-zA-Z0-9_+-]+\.)+[a-zA-Z]{2,4}$/',
+            $email
+        )) {
+            return FALSE;
+        }
+
+        // create and send the confirmation email
+        $link = 'http://' . $_SERVER['SERVER_NAME'] .
+            $this->view->url(array(
+                'controller' => 'account',
+                'action' => 'confirm-email',
+                'uid' => $user->id,
+                'key' => Taskr_Util::hashPassword($email),
+            ));
+        $mail = new Zend_Mail('utf-8');
+        $mail
+            ->setFrom('support@taskr.eu', 'Taskr')
+            ->setSubject('Confirm your email address')
+            ->addTo($email)
+            ->setBodyText(<<<END
+Hi,
+
+If you are '{$user->username}' on Taskr, please follow the link
+below to confirm that you can be reached at this email address,
+$email.
+
+$link
+
+If this address was given to Taskr by someone other than you,
+just ignore and delete this email. We won't activate this address.
+END
+);
+        try {
+            $mail->send();
+        } catch(Exception $e) {
+            return FALSE;
+        }
+
+        // save the new email address
+        $user->emailTmp = $email;
+        self::$_mapper->saveUser($user);
+
+        // add a task telling the user to check the email
+        $user->addTask(array(
+            'title' => 'Confirm your email address',
+            'scrap' => <<<END
+Check your e-mail inbox and follow the confirmation link we've sent you.
+
+Please note that you need to have a **confirmed** email address if you
+ever want to reset your password in the future.
+END
+,
+        ));
+
+        return TRUE;
     }
 
 }
