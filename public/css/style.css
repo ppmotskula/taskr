@@ -114,7 +114,7 @@ div.wlcSidebar h2 {
 margin:0 auto;
 }
 
-div#login label, div#signup label, div#reset label {
+div#login label, div#signup label, div#reset label, div#account label {
 display:inline-block;
 width:10em;
 text-align:right;

@@ -45,7 +45,73 @@ class AccountController extends Zend_Controller_Action
      */
     public function indexAction()
     {
-        // @todo action body
+        // bail out if no user is signed in
+        if (!isset(self::$_user)) {
+            self::$_redirector->gotoSimple('index', 'index');
+        }
+
+        $request = $this->getRequest();
+
+        // if not a POST request, prepopulate and show the form
+        if (!$request->isPost()) {
+            $formData['email'] = self::$_user->email;
+            $this->view->formData = $formData;
+            return;
+        }
+
+        // process form submissions
+        $formData = $request->getPost();
+
+        // if password was given, check it for minimum
+        if ($password = $formData['password']) {
+            if (strlen($password) < 6) {
+                $formErrors['password'] = 'At least 6 characters, please';
+            }
+            if ($password != $formData['repeat']) {
+                $formErrors['repeat'] = 'Passwords do not match';
+            }
+        }
+
+        // if email is given, check it for structural validity
+        if ($email = $formData['email']) {
+            if (!preg_match(
+                '/^[a-zA-Z0-9._+-]+@(?:[a-zA-Z0-9_+-]+\.)+[a-zA-Z]{2,4}$/',
+                $email
+            )) {
+                $formErrors['email'] = 'Not a valid email address';
+            }
+        }
+
+        // if given email is identical to current one, ignore it
+        if ($email == self::$_user->email) {
+            unset($email);
+        }
+
+        // check the current password
+        if (!Taskr_Util::testPassword(
+            $formData['currentPassword'],
+            self::$_user->password
+        )) {
+            $formErrors['currentPassword'] = 'Invalid password';
+        }
+
+        // if there were any errors, redisplay the form
+        if ($formErrors) {
+            $this->view->formData = $formData;
+            $this->view->formErrors = $formErrors;
+            return;
+        }
+
+        // process changes, go to task list
+        if ($email) {
+            $this->_addEmail(self::$_user, $email);
+        }
+        if ($password) {
+            self::$_user->password = Taskr_Util::hashPassword($password);
+        }
+        self::$_mapper->saveUser(self::$_user);
+        self::$_redirector->gotoSimple('index', 'task');
+
     }
 
     /**

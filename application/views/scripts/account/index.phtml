@@ -1,22 +1,42 @@
-<pre>
-New password:
-Repeat password:
-[change password]
+<div id="account">
 
-New email:
-[send confirmation]
+<form method="post" action="">
 
-Timezone: UTC+2
-[save]
-</pre>
+<h3>Add/edit email address</h3>
+<p>NOTE: Your changes will not become effective until you confirm your new address.</p>
+<p><label for="email">E-mail:</label>
+<input name="email" id="email" type="text" size="20" value="<?php
+echo $this->formData['email'] ?>" /><?php
+if (isset($this->formErrors['email'])) {
+    echo ' <span class="error">' . $this->formErrors['email'] . '</span>';
+} ?></p>
 
-<hr>
 
-<pre>
-$mail = new Zend_Mail();
-$mail->setBodyText('This is the text of the mail.');
-$mail->setFrom('somebody@example.com', 'Some Sender');
-$mail->addTo('somebody_else@example.com', 'Some Recipient');
-$mail->setSubject('TestSubject');
-$mail->send();
-</pre>
+<h3>Change password</h3>
+<p>NOTE: Leave empty if you don't want to change your password</p>
+<p><label for="password">New password:</label>
+<input name="password" id="password" type="password" size="20" value="<?php
+echo $this->formData['password'] ?>" /><?php
+if (isset($this->formErrors['password'])) {
+    echo ' <span class="error">' . $this->formErrors['password'] . '</span>';
+} ?><br />
+<label for="repeat">Repeat password:</label>
+<input name="repeat" id="repeat" type="password" size="20" value="<?php
+echo $this->formData['repeat'] ?>" /><?php
+if (isset($this->formErrors['repeat'])) {
+    echo ' <span class="error">' . $this->formErrors['repeat'] . '</span>';
+} ?></p>
+
+<h3>Confirm changes</h3>
+<p><label for="currentPassword">Current password:</label>
+<input name="currentPassword" id="currentPassword" type="password" size="20"
+value="" /><?php
+if (isset($this->formErrors['currentPassword'])) {
+    echo ' <span class="error">' . $this->formErrors['currentPassword'] . '</span>';
+} ?></p>
+<p><label></label>
+<input name="submit" id="submit" type="submit" value="Save changes" /></p>
+</form>
+
+</div> <!-- /account -->
+
