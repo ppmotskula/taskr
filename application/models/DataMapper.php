@@ -150,7 +150,7 @@ class Taskr_Model_DataMapper
             self::$_db->insert('users', $row);
             $user->id = self::$_db->lastInsertId();
         } else {
-            self::$_db->update('users', $row, "id = $id");
+            self::$_db->update('users', $row, "id = {$user->id}");
         }
     }
 

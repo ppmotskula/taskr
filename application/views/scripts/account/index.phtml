@@ -1,1 +1,22 @@
-<br /><br /><center>View script for controller <b>Account</b> and script/action name <b>index</b></center>
+<pre>
+New password:
+Repeat password:
+[change password]
+
+New email:
+[send confirmation]
+
+Timezone: UTC+2
+[save]
+</pre>
+
+<hr>
+
+<pre>
+$mail = new Zend_Mail();
+$mail->setBodyText('This is the text of the mail.');
+$mail->setFrom('somebody@example.com', 'Some Sender');
+$mail->addTo('somebody_else@example.com', 'Some Recipient');
+$mail->setSubject('TestSubject');
+$mail->send();
+</pre>

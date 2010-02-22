@@ -1,3 +1,7 @@
+<?php if ($this->formErrors['reset']) {
+    echo $this->formErrors['reset'];
+    return;
+} ?>
 <div id="login">
 <h2>Log in</h2>
 <form method="post" action="">
@@ -20,28 +24,14 @@ if (isset($this->formData['rememberme'])) {
     echo ' checked';
 } ?> />
 </p>
-<p>
-<label></label>
-<input name="submit" id="loginSubmit" type="submit" value="Log in" /><?php
-if (isset($this->formErrors['credentials'])) {
-    echo ' <span class="error">' . $this->formErrors['credentials'] . '</span>';
-} ?></p>
-</form>
+<p><label></label>
+<input name="submit" id="loginSubmit" type="submit" value="Log in" /></p>
 <?php if (isset($this->formErrors['credentials'])): ?>
 <h2>Forgot password?</h2>
-<form method="post" action="<?php echo $this->url(array(
-    'controller' => 'account',
-    'action' => 'reset-password',
-)); ?>">
 <p>If you have provided your e-mail address, then you can try to reset your password.
 Otherwise, you're pretty much out of luck.</p>
-<p>
-<label for="email">E-mail:</label>
-<input name="email" id="email" type="text" size="20" />
-</p>
-<p>
-<label></label>
-<input name="submit" type="submit" value="Continue" /></p>
-</form>
+<p><label></label>
+<input name="submit" type="submit" value="Reset password" /></p>
 <?php endif; ?>
+</form>
 </div> <!-- /login -->
