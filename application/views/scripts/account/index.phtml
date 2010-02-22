@@ -27,6 +27,13 @@ if (isset($this->formErrors['repeat'])) {
     echo ' <span class="error">' . $this->formErrors['repeat'] . '</span>';
 } ?></p>
 
+<h3>Delete your account</h3>
+<p>NOTE: To <em>permanently and irrevocably</em> delete your account and all
+information within it, enter "Yes!" (with capital "Y" and an "!") below.</p>
+<p><label for="deleteAccount">Delete account?</label>
+<input name="deleteAccount" id="deleteAccount" type="text" size="20"
+value="" /></p>
+
 <h3>Confirm changes</h3>
 <p><label for="currentPassword">Current password:</label>
 <input name="currentPassword" id="currentPassword" type="password" size="20"

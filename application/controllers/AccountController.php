@@ -72,14 +72,11 @@ class AccountController extends Zend_Controller_Action
             }
         }
 
-        // if email is given, check it for structural validity
-        if ($email = $formData['email']) {
-            if (!preg_match(
-                '/^[a-zA-Z0-9._+-]+@(?:[a-zA-Z0-9_+-]+\.)+[a-zA-Z]{2,4}$/',
-                $email
-            )) {
-                $formErrors['email'] = 'Not a valid email address';
-            }
+        // if email is given, check if it's good
+        if (($email = $formData['email']) &&
+            ($mailError = $this->_checkEmail($email))
+        ) {
+            $formErrors['email'] = $mailError;
         }
 
         // if given email is identical to current one, ignore it
@@ -101,6 +98,18 @@ class AccountController extends Zend_Controller_Action
             $this->view->formErrors = $formErrors;
             return;
         }
+
+        // process account deletion
+        if ('Yes!' == $formData['deleteAccount']) {
+            // delete all user data
+            self::$_mapper->deleteUser(self::$_user);
+            // clear identity and forget me
+            Zend_Auth::getInstance()->clearIdentity();
+            Zend_Session::forgetMe();
+            // go to welcome page
+            self::$_redirector->gotoSimple('index', 'index');
+        }
+
 
         // process changes, go to task list
         if ($email) {
@@ -286,14 +295,11 @@ END;
                 $formErrors['repeat'] = 'Passwords do not match';
             }
 
-            // if email is given, check it for structural validity
-            if ($email = $formData['email']) {
-                if (!preg_match(
-                    '/^[a-zA-Z0-9._+-]+@(?:[a-zA-Z0-9_+-]+\.)+[a-zA-Z]{2,4}$/',
-                    $email
-                )) {
-                    $formErrors['email'] = 'Not a valid email address';
-                }
+            // if email is given, check if it's good
+            if (($email = $formData['email']) &&
+                ($mailError = $this->_checkEmail($email))
+            ) {
+                $formErrors['email'] = $mailError;
             }
 
             // check acceptance of terms
@@ -494,6 +500,30 @@ END
         ));
 
         return TRUE;
+    }
+
+    /**
+     * Check if user-entered email address is unique and structurally sound
+     *
+     * @param string $email;
+     * @return string Error message or NULL if email was good
+     */
+    protected function _checkEmail($email)
+    {
+        if (!preg_match(
+            '/^[a-zA-Z0-9._+-]+@(?:[a-zA-Z0-9_+-]+\.)+[a-zA-Z]{2,4}$/',
+            $email
+        )) {
+            return 'Not a valid email address';
+        }
+
+        if (self::$_user &&
+            self::$_user->email != $email &&
+            self::$_mapper->findUserByEmail($email)) {
+            return 'Address already in use';
+        }
+
+        return NULL;
     }
 
 }

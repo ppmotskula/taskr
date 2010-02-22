@@ -124,6 +124,22 @@ class Taskr_Model_DataMapper
     }
 
     /**
+     * Fetches the user by email from the database
+     *
+     * @param string $email
+     * @return Taskr_Model_User NULL if the user is not found
+     */
+    public function findUserByEmail($email)
+    {
+        $sql = 'SELECT * FROM users' .
+            ' WHERE email = :email';
+        $row = self::$_db->fetchRow($sql, array(
+            ':email' => $email,
+        ));
+        return $this->_toUser($row);
+    }
+
+    /**
      * Saves the user into the database
      *
      * @param Taskr_Model_User &$user
@@ -154,6 +170,20 @@ class Taskr_Model_DataMapper
         } else {
             self::$_db->update('users', $row, "id = {$user->id}");
         }
+    }
+
+    /**
+     * Deletes the user account and any data associated with it
+     *
+     * @param Taskr_Model_User $user
+     */
+    public function deleteUser(Taskr_Model_User $user)
+    {
+        self::$_db->beginTransaction();
+        self::$_db->delete('tasks', "user_id = {$user->id}");
+        self::$_db->delete('projects', "user_id = {$user->id}");
+        self::$_db->delete('users', "id = {$user->id}");
+        self::$_db->commit();
     }
 
     /**
