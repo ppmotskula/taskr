@@ -22,7 +22,7 @@ echo $this->url(array(
 <div id="tasklist">
 
 <?php if ($archivedProjects =
-        $this->user->archivedProjects($today, $today + 86400)): ?>
+        $this->user->getArchivedProjects($today, $today + 86400)): ?>
 <div id="projects">
 <b>Projects:</b>
 <ul class="tasklist">
@@ -37,7 +37,7 @@ foreach($archivedProjects as $project) {
 <?php endif; ?>
 
 <?php if ($archivedTasks =
-        $this->user->archivedTasks($today, $today + 86400)): ?>
+        $this->user->getArchivedTasks($today, $today + 86400)): ?>
 <div id="tasks">
 <b>Tasks:</b>
 <ul class="tasklist">

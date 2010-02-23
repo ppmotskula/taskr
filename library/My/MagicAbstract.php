@@ -187,9 +187,10 @@ abstract class My_MagicAbstract
     public function getMagic()
     {
         $result = array();
-        $properties = get_class_vars($this);
+        $properties = get_object_vars($this);
 
-        if (is_array($this->_magic)) {
+        if ( property_exists($this, '_magic')
+          && is_array($this->_magic) ) {
             foreach ($this->_magic as $key => $value) {
                 $result[$key] = $value;
             }
@@ -203,7 +204,7 @@ abstract class My_MagicAbstract
             ) {
                 $method = 'get' . ucfirst($key);
 
-                if (method_exists($this->$method)) {
+                if (method_exists($this, $method)) {
                     $result[$key] = $this->$method();
                 } else {
                     $result[$key] = $value;

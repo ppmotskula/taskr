@@ -1,6 +1,6 @@
 <div id="tasklist">
 
-<?php if ($activeTask = $this->user->activeTask()) : ?>
+<?php if ($activeTask = $this->user->getActiveTask()) : ?>
 <div id="active">
 <form method="post" action="<?php echo $this->url(
     array(
@@ -36,8 +36,8 @@ if ($activeTask->project) {
 </div></form>
 </div> <!-- /new -->
 
-<?php if ($upcomingTasks = $this->user->upcomingTasks()) : ?>
-<?php $activeProject = $this->user->activeProject(); ?>
+<?php if ($upcomingTasks = $this->user->getUpcomingTasks()) : ?>
+<?php $activeProject = $this->user->getActiveProject(); ?>
 <div id="upcoming">
 <b>To do:</b>
 <ul class="tasklist">
@@ -86,7 +86,7 @@ if ($task->liveline || $task->deadline || $task->project) {
 </div> <!-- /upcoming -->
 <?php endif; ?>
 
-<?php if ($finishedTasks = $this->user->finishedTasks()) : ?>
+<?php if ($finishedTasks = $this->user->getFinishedTasks()) : ?>
 <div id="finished">
 <form method="post" action="<?php echo $this->url(
     array(

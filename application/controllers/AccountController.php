@@ -36,6 +36,7 @@ class AccountController extends Zend_Controller_Action
         self::$_redirector = $this->_helper->Redirector;
         if (Zend_Auth::getInstance()->hasIdentity()) {
             self::$_user = Zend_Auth::getInstance()->getIdentity();
+            self::$_user->initContext();
         }
         self::$_mapper = Taskr_Model_DataMapper::getInstance();
     }
@@ -118,7 +119,8 @@ class AccountController extends Zend_Controller_Action
         if ($password) {
             self::$_user->password = Taskr_Util::hashPassword($password);
         }
-        self::$_mapper->saveUser(self::$_user);
+        $user->save();
+        //self::$_mapper->saveUser(self::$_user);
         self::$_redirector->gotoSimple('index', 'task');
 
     }
@@ -253,9 +255,7 @@ END;
         }
 
         // stop active task if any
-        if ($task = self::$_user->activeTask()) {
-            $task->stop();
-        }
+        self::$_user->activateTaskById(NULL);
 
         // clear identity, forget me, and go to welcome page
         Zend_Auth::getInstance()->clearIdentity();
@@ -276,13 +276,14 @@ END;
         // only process POST requests
         $request = $this->getRequest();
         if ($request->isPost()) {
+        	My_Dbg::log('$request->isPost()');
             $formData = $request->getPost();
 
             // check username
             $username = $formData['username'];
             if (strlen($username) < 6) {
                 $formErrors['username'] = 'At least 6 characters, please';
-            } elseif (self::$_mapper->findUserByUsername($username)) {
+            } elseif (Taskr_Model_User::getByUsername($username)) {
                 $formErrors['username'] = 'This username is already taken';
             }
 
@@ -315,12 +316,15 @@ END;
                     'password' => Taskr_Util::hashPassword($password),
                     // @todo add support for tzDiff
                 ));
-                self::$_mapper->saveUser($user);
+        	My_Dbg::log('$user->save()');
+                $user->save();
 
                 // process newly-entered email
+        	My_Dbg::log('$this->_addEmail($user, $email)');
                 $this->_addEmail($user, $email);
 
                 // proceed to login
+        	My_Dbg::log('$this->loginAction()');
                 $this->loginAction();
             }
         }
@@ -378,7 +382,8 @@ END;
         if (!isset($formErrors) && isset($password)) {
             // save entered password, proceed to login
             $user->password=Taskr_Util::hashPassword($password);
-            self::$_mapper->saveUser($user);
+            $user->save();
+            //self::$_mapper->saveUser($user);
             $this->loginAction();
         }
 
@@ -428,7 +433,8 @@ END;
 
         self::$_user->email = self::$_user->emailTmp;
         self::$_user->emailTmp = '';
-        self::$_mapper->saveUser(self::$_user);
+        self::$_user->save();
+        //self::$_mapper->saveUser(self::$_user);
         $this->view->message = <<<END
 Congratulations! You've successfully confirmed your email address.
 END;
@@ -485,7 +491,8 @@ END
 
         // save the new email address
         $user->emailTmp = $email;
-        self::$_mapper->saveUser($user);
+        $user->save();
+        //self::$_mapper->saveUser($user);
 
         // add a task telling the user to check the email
         $user->addTask(array(

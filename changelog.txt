@@ -1,0 +1,27 @@
+val_100215 BugFix:
+My_MagicAbstract::getMagic() caused error when class instance didn't have a _magic array,
+like in My_MagicFlex class.
+
+val_100222 NewClass:
+My_Dbg is actually a tiny self-initializing tracer.
+In the current implementation, it will auto-activate if development mode is detected.
+It's interface is not fully finished yet and there is no explicit method to disable it.
+If you don't want it, then just specify an non-existent directory in [tracer.path] of
+application.ini file.
+
+val_100223 status:
+The port to MySQL platform seems to work now, except project features (soon to come!).
+The original business class files renamed like 'TaskW.php' are kept in Models directory
+for quick reference, but the code itself is not executed.
+NB: User save doesn't support 'emailTmp' column yet!
+
+NB: .ini file in application/configs has to be edited manually for actual connection parameters
+on deployment! 
+
+There is also My_RmoAbstract class layer switched between business classes and 
+My_MagicAbstract class. Let it be there so far - it won't degrade execution and from time to time
+I play with it in my private brances.
+
+Only tiny part of My_RmoManager code is actually in use right now and it may well be that
+the whole RMO stuff will be kicked out finally.
+

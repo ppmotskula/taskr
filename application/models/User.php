@@ -14,87 +14,194 @@
  * @property string $password must not be NULL;
  *      contains salted and hashed password
  * @property string $email email address
- * @property string $emailTmp temporary, unconfirmed email address
  * @property int $tzDiff difference of user's time from UTC in seconds
  * @property int $added Unix timestamp of when user was created
  * @property int $proUntil Unix timestamp of when user's "Pro" status expires
  * @property int $credits number of referral credits user has
  */
-class Taskr_Model_User extends My_MagicAbstract
+class Taskr_Model_User extends My_RmoAbstract
 {
+    const NAME = 'user';
+    
     /**
-     * @ignore (magic property)
+     * Properties manipulated by MagicAbstract base class.
+     * @ignore
      */
     protected $_magicId;
-
-    /**
-     * @ignore (magic property)
-     */
     protected $_magicUsername;
-
-    /**
-     * @ignore (magic property)
-     */
     protected $_magicPassword;
-
-    /**
-     * @ignore (magic property)
-     */
     protected $_magicEmail;
-
-    /**
-     * @ignore (magic property)
-     */
     protected $_magicEmailTmp;
-
-    /**
-     * @ignore (magic property)
-     */
     protected $_magicTzDiff;
-
-    /**
-     * @ignore (magic property)
-     */
-    protected $_magicAdded;
-
-    /**
-     * @ignore (magic property)
-     */
     protected $_magicProUntil;
-
-    /**
-     * @ignore (magic property)
-     */
     protected $_magicCredits;
+    protected $_magicAdded;
+    
+    /**
+     * active task object
+     * @todo check logics ... false etc.
+     */
+    protected $_activeTask;
+    
+    /*
+     * RmoManager
+     * @todo check out why we'll get the session manager error if using $_rmo
+     */
+    // protected $_rmo;
+    protected static $_rmoManager;
+    
+    protected static $_sessionUser;
+
 
     /**
-     * Retrieves the user's active task from the mapper
-     *
-     * @return Taskr_Model_Task
+     * @see My_RmoInterface
      */
-    public function activeProject()
+    public function getClass()
     {
-        return Taskr_Model_DataMapper::getInstance()->activeProject($this);
+        return self::NAME;
+    }
+    
+   /**
+    * Initiate working context for user. Called by Controller init()
+    *
+    * This method should be called for authenticated user only. 
+    * @usedby TaskController.init()
+    */
+    public function initContext()
+    {
+        My_Dbg::trc(__CLASS__, __FUNCTION__);
+        
+    	if ( self::$_sessionUser && $this !== self::$_sessionUser ) {
+    	    throw new Zend_Exception('Extra call to User::initContext()');
+    	}
+    	self::$_sessionUser = $this;
+    	
+    	if ( !$this->rmoM() ) { self::_initRmoManager(); }
+    	
+    	$this->_setDispatcher( Taskr_Model_DataMapper::getInstance() );
+    	$this->_dispatch( 'connection' );
+    	
+     	// return Taskr_Model_DataMapper::getInstance()
+     	return $this->getDispatcher()
+     	           ->initUserConnection(intval($this->id));
+     	// return $this->dispatch( 'connection' );
+    }
+    
+    public function rmoM()
+    {
+        return self::$_rmoManager;
+    }
+    
+    protected static function _initRmoManager()
+    {
+        self::$_rmoManager = new My_RmoManager( array(
+            'tasks.live' => array( 'task.live' ),
+            'tasks.active' => array( 
+                           'task.overdue', 'task.today', 'task.active', 'task.future' ),
+            'tasks.finished' => array( 'task.finished' ),
+            'tasks.archived' => array( 'task.archived' ),
+             ) );
+    }
+    
+   /**
+    * Retrieves user object by name
+    *
+    * @usedby AccountController.signupAction()
+    * @usedby Taskr_Auth_Adapter_Password.authenticate()
+    * @return Taskr_Model_User
+    * @todo static self pointer may be questionable here
+    */
+    public static function getByUsername($username)
+    {
+    	if ( !($user = self::$_sessionUser) || $user->userName != $username ) {
+    	    if ( !self::$_rmoManager ) {
+    	        self::_initRmoManager();
+    	    }
+    	    $user = Taskr_Model_DataMapper::getInstance()->userFetch( $username );
+    	    // $user = self::dispatchMsg( self::NAME, array( 'GET', $username ) );
+     	}
+     	return $user;
     }
 
-    /**
-     * Retrieves the user's active task from the mapper
-     *
-     * @return Taskr_Model_Task
-     */
-    public function activeTask()
+   /**
+    * Saves user info
+    */
+    public function save()
     {
-        return Taskr_Model_DataMapper::getInstance()->activeTask($this);
+        return Taskr_Model_DataMapper::getInstance()->userSave( $this );
+        // return $this->dispatch( 'SAVE' );
+    }
+     
+    /**
+     * Adds a new task
+     *
+     * @param string|array|Taskr_Model_Task $task
+     * @return Taskr_Model_Task
+     * @throws Exception if $task is neither an instance of
+     * Taskr_Model_Task nor an array or string suitable for creating one
+     */
+    public function addTask($task)
+    {
+        if (is_string($task)) {
+            // string to array
+            $task = array('title' => $task);
+        }
+
+        if (is_array($task)) {
+            // array to Taskr_Model_Task
+            $task = new Taskr_Model_Task($task);
+        }
+
+        if (!is_a($task, 'Taskr_Model_Task') || !isset($task->title)) {
+            throw new Exception('Invalid task');
+        }
+
+        $task->userId = $this->id;
+        //Taskr_Model_DataMapper::getInstance()->saveTask($task);
+        return $task->checkIn();
     }
 
-    /**
-     * Retrieves the user's unfinished projects from the mapper
-     *
-     * @return array of Taskr_Model_Project
-     */
-    public function unfinishedProjects()
+   /**
+    * Start specified task
+    *
+    * If there is other task running, it will be stopped.
+    * Data storage will be synchronized. This is the only entry for UI.
+    * @usedby TaskController
+    *
+    * @param int task index or NULL
+    */
+    public function activateTaskById( $id )
     {
-        return Taskr_Model_DataMapper::getInstance()->unfinishedProjects($this);
+        My_Dbg::trc(__CLASS__, __FUNCTION__);
+        
+        $task = $this->_activeTask;
+        $this->_activeTask = NULL;                // invalidate, so it will be loaded again
+
+        if ( $id ) {
+            Taskr_Model_DataMapper::getInstance()->taskStart($id);
+            // self::dispatchMsg( 'task' ,'START', intval($id) );
+        } elseif( $task ) {
+            Taskr_Model_DataMapper::getInstance()->taskStop($task);
+            // $task->stop();
+        }
+    }
+	
+   /**
+    * Retrieves the user's active task from the mapper
+    * @usedby TaskController
+    *
+    * @return Taskr_Model_Task
+    */
+    public function getActiveTask()
+    {
+        My_Dbg::trc(__CLASS__, __FUNCTION__);
+        
+    	if ( !$this->_activeTask ) {
+            $this->_activeTask = 
+                Taskr_Model_DataMapper::getInstance()->loadActiveTask();
+    	    // self::dispatchMsg( 'task' ,'GET' ) );
+        }
+        return $this->_activeTask;
     }
 
     /**
@@ -102,9 +209,10 @@ class Taskr_Model_User extends My_MagicAbstract
      *
      * @return array of Taskr_Model_Task
      */
-    public function upcomingTasks()
+    public function getUpcomingTasks()
     {
-        return Taskr_Model_DataMapper::getInstance()->upcomingTasks($this);
+        return $this->rmoM()->loadList( 'tasks.active' );
+        // return $this->dispatch( 'load', 'tasks.active' );
     }
 
     /**
@@ -112,38 +220,47 @@ class Taskr_Model_User extends My_MagicAbstract
      *
      * @return array of Taskr_Model_Task
      */
-    public function finishedTasks()
+    public function getFinishedTasks()
     {
-        return Taskr_Model_DataMapper::getInstance()->finishedTasks($this);
-    }
-
-    /**
-     * Retrieves the user's archived projects from the mapper
-     *
-     * @param int $fromTs Unix timestamp of oldest task to retrieve
-     * @return array of Taskr_Model_Task
-     */
-    public function archivedProjects($fromTs = NULL, $toTs = NULL)
-    {
-        return Taskr_Model_DataMapper::getInstance()->
-                archivedProjects($this, $fromTs, $toTs);
+        return $this->rmoM()->loadList( 'tasks.finished' );
+        // return $this->dispatch( 'load', 'tasks.finished' );
     }
 
     /**
      * Retrieves the user's archived tasks from the mapper
      *
-     * @param int $fromTs Unix timestamp of oldest task to retrieve
+     * @param int $fromDate Unix timestamp of oldest task to retrieve
      * @return array of Taskr_Model_Task
      */
-    public function archivedTasks($fromTs = NULL, $toTs = NULL)
+    public function getArchivedTasks($fromDate)
     {
-        return Taskr_Model_DataMapper::getInstance()->
-                archivedTasks($this, $fromTs, $toTs);
+        return $this->rmoM()->loadList( 'tasks.archived' );
     }
 
     /**
-     * Adds a new project
+     * Archives finished tasks
      *
+     * @return int number of tasks archived
+     */
+    public function archiveFinishedTasks()
+    {
+        My_Dbg::trc(__CLASS__, __FUNCTION__);
+        Taskr_Model_DataMapper::getInstance()->tasksArchive( $this->id );
+    }
+
+    /**
+     * Retrieves the user's active task from the mapper
+     * @todo IMPLEMENT!
+     * @return Taskr_Model_Task
+     */
+    public function getActiveProject()
+    {
+        return NULL; //Taskr_Model_DataMapper::getInstance()->activeProject($this);
+    }
+    
+    /**
+     * Adds a new project
+     * @todo IMPL
      * @param string|array|Taskr_Model_Project $project
      * @return Taskr_Model_Project or NULL if the user isn't allowed to add
      * new projects
@@ -178,76 +295,21 @@ class Taskr_Model_User extends My_MagicAbstract
     }
 
     /**
-     * Adds a new task
-     *
-     * @param string|array|Taskr_Model_Task $task
-     * @return Taskr_Model_Task
-     * @throws Exception if $task is neither an instance of
-     * Taskr_Model_Task nor an array or string suitable for creating one
+     * @todo IMPLEMENT!
      */
-    public function addTask($task)
+    public function getProjects()
     {
-        if (is_string($task)) {
-            // string to array
-            $task = array('title' => $task);
-        }
-
-        if (is_array($task)) {
-            // array to Taskr_Model_Task
-            $task = new Taskr_Model_Task($task);
-        }
-
-        if (!is_a($task, 'Taskr_Model_Task') || !isset($task->title)) {
-            throw new Exception('Invalid task');
-        }
-
-        $task->user = $this;
-        Taskr_Model_DataMapper::getInstance()->saveTask($task);
-        return $task;
+        return NULL;
     }
-
+    
     /**
-     * Starts a task, stopping the currently active task first if there is one
-     *
-     * @param int $id
-     * @return Taskr_Model_Task
+     * @todo IMPLEMENT!
      */
-    public function startTask($id)
+    public function getArchivedProjects()
     {
-        if (NULL != ($task = $this->activeTask($this))) {
-            $task->stop();
-        }
-
-        if (NULL !=
-            ($task = Taskr_Model_DataMapper::getInstance()->findTask($id))
-        ) {
-            if ($task->user->id == $this->id) {
-                $task->start();
-                return $task;
-            }
-        }
-
-        throw new Exception(
-            "Task $id is not found or does not belong to user {$this->username}"
-        );
+        return NULL;
     }
-
-    /**
-     * Archives finished tasks
-     *
-     * @return int number of tasks archived
-     */
-    public function archiveFinishedTasks()
-    {
-        $tasks = $this->finishedTasks();
-        if (0 < ($result = count($tasks))) {
-            foreach ($tasks as $task) {
-                $task->archive();
-            }
-        }
-        return $result;
-    }
-
+    
     /**
      * Check the user's Pro status
      *
@@ -257,5 +319,5 @@ class Taskr_Model_User extends My_MagicAbstract
     {
         return $this->proUntil > time();
     }
-
 }
+

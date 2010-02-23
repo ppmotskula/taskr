@@ -38,6 +38,7 @@ class ArchiveController extends Zend_Controller_Action
         // bail out if nobody is logged in
         if (Zend_Auth::getInstance()->hasIdentity()) {
             self::$_user = Zend_Auth::getInstance()->getIdentity();
+            self::$_user->initContext();
         } else {
             self::$_redirector->gotoSimple('index', 'index');
         }
@@ -45,7 +46,7 @@ class ArchiveController extends Zend_Controller_Action
         self::$_mapper = Taskr_Model_DataMapper::getInstance();
 
         // initialise timer if current user has an active task
-        if ($task = self::$_user->activeTask()) {
+        if ($task = self::$_user->getActiveTask()) {
             $this->view->headScript()
                 ->appendFile($this->view->baseUrl() . '/js/timer.js')
             ;

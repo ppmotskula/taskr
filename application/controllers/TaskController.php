@@ -38,6 +38,7 @@ class TaskController extends Zend_Controller_Action
         // bail out if nobody is logged in
         if (Zend_Auth::getInstance()->hasIdentity()) {
             self::$_user = Zend_Auth::getInstance()->getIdentity();
+            self::$_user->initContext();
         } else {
             self::$_redirector->gotoSimple('index', 'index');
         }
@@ -45,7 +46,7 @@ class TaskController extends Zend_Controller_Action
         self::$_mapper = Taskr_Model_DataMapper::getInstance();
 
         // initialise timer if current user has an active task
-        if ($task = self::$_user->activeTask()) {
+        if ($task = self::$_user->getActivetask()) {
             $this->view->headScript()
                 ->appendFile($this->view->baseUrl() . '/js/timer.js')
             ;
@@ -69,7 +70,7 @@ class TaskController extends Zend_Controller_Action
     public function editAction()
     {
         // bail out if current user has no active task
-        if (!$task = self::$_user->activeTask()) {
+        if (!$task = self::$_user->getActiveTask()) {
             $this->_redirector->gotoSimple('index', 'task');
         }
 
@@ -119,7 +120,7 @@ class TaskController extends Zend_Controller_Action
                         $task->project->finish($task);
                     }
 
-                    $task->project = $project;
+                    $task->projectId = $project->id;
 
                     $liveline = Taskr_Util::dateToTs($formData['liveline']);
                     if (FALSE === $liveline) {
@@ -148,17 +149,19 @@ class TaskController extends Zend_Controller_Action
                         break;
                     }
 
-                    // no errors, save and go to task list
-                    if ($formData['finish']) {
+                    $task->save();			// no errors, save the (possible) changes
+                    
+                    //My_Dbg::dump($formData,'** $formData **');
+                    if ( array_key_exists('finish', $formData )  &&   //!val quick fix
+                         $formData['finish']) {
                         $task->finish();
-                    } else {
-                        self::$_mapper->saveTask($task);
+                    	self::$_user->activateTaskById(NULL);
                     }
                     self::$_redirector->gotoSimple('index', 'task');
                 case 'cancel':
                     self::$_redirector->gotoSimple('index', 'task');
                 case 'stop':
-                    $task->stop();
+                    self::$_user->activateTaskById(NULL);
                     self::$_redirector->gotoSimple('index', 'task');
                 // ignore any other buttons including 'edit'
             }
@@ -168,7 +171,7 @@ class TaskController extends Zend_Controller_Action
         $this->view->user = self::$_user;
         $this->view->task = $task;
         $this->view->formData = $formData;
-        $this->view->formErrors = $formErrors;
+        if (isset($formErrors)) { $this->view->formErrors = $formErrors; }  //!val quick fix
     }
 
     /**
@@ -188,7 +191,8 @@ class TaskController extends Zend_Controller_Action
 
             if ($taskText) {
                 $task = new Taskr_Model_Task(array(
-                    'user' => self::$_user,
+                    'userId' => self::$_user->id,
+                    //'user' => self::$_user,
                 ));
 
                 // also create scrap if multi-line entry
@@ -227,7 +231,7 @@ class TaskController extends Zend_Controller_Action
                     // #NULL or #projectName found in new task's title
                     $title = trim($matches[1] . ' ' . $matches[3]);
                     $projectName = substr($matches[2], 1);
-                } elseif ($activeProject = self::$_user->activeProject()) {
+                } elseif ($activeProject = self::$_user->getActiveProject()) {
                     // no # references found in title, use current user's
                     // active project if any
                     $title = $task->title;
@@ -238,7 +242,7 @@ class TaskController extends Zend_Controller_Action
                 if (isset($projectName)) {
                     $task->title = $title;
                     // try to find an existing unfinished project first
-                    foreach (self::$_user->unfinishedProjects() as $project) {
+                    foreach (self::$_user->getProjects() as $project) {
                         if ($projectName == $project->title) {
                             $task->project = $project;
                             break;
@@ -262,9 +266,11 @@ class TaskController extends Zend_Controller_Action
 
                 // try to add the new task
                 try {
-                    self::$_user->addTask($task);
+                	$task->checkIn();    // Connect to Business Object Model
+                    //self::$_user->addTask($task);
                 } catch(Exception $e) {
                     // just ignore the exception -- task couldn't be created
+                    My_Dbg::log('TaskController: COULD NOT add a task #' . $task->id );
                 }
             }
         }
@@ -277,12 +283,8 @@ class TaskController extends Zend_Controller_Action
      */
     public function startAction()
     {
-        if (
-            ($taskId = $this->_getParam('id', 0))
-            && ($task = self::$_mapper->findTask($taskId))
-            && (self::$_user->id == $task->user->id)
-        ) {
-            $task->start();
+        if ( $taskId = $this->_getParam('id', 0) ) {
+            self::$_user->activateTaskById($taskId);
         }
 
         self::$_redirector->gotoSimple('index', 'task');
@@ -293,11 +295,7 @@ class TaskController extends Zend_Controller_Action
      */
     public function hideAction()
     {
-        $tasks = self::$_user->finishedTasks();
-
-        foreach ($tasks as $task) {
-            $task->archive();
-        }
+        self::$_user->archiveFinishedTasks();
 
         self::$_redirector->gotoSimple('index', 'task');
     }
