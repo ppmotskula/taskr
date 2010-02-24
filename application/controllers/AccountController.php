@@ -33,6 +33,7 @@ class AccountController extends Zend_Controller_Action
      */
     public function init()
     {
+        My_Dbg::trc(__CLASS__, __FUNCTION__);
         self::$_redirector = $this->_helper->Redirector;
         if (Zend_Auth::getInstance()->hasIdentity()) {
             self::$_user = Zend_Auth::getInstance()->getIdentity();
@@ -46,8 +47,11 @@ class AccountController extends Zend_Controller_Action
      */
     public function indexAction()
     {
+        My_Dbg::trc(__CLASS__, __FUNCTION__);
+        My_Dbg::dump($this->view->formData, '$this->view->formData');
         // bail out if no user is signed in
         if (!isset(self::$_user)) {
+            My_Dbg::log('self::$_redirector->gotoSimple');
             self::$_redirector->gotoSimple('index', 'index');
         }
 
@@ -55,6 +59,7 @@ class AccountController extends Zend_Controller_Action
 
         // if not a POST request, prepopulate and show the form
         if (!$request->isPost()) {
+            My_Dbg::log('not POST, RETURN');
             $formData['email'] = self::$_user->email;
             $this->view->formData = $formData;
             return;
@@ -62,6 +67,7 @@ class AccountController extends Zend_Controller_Action
 
         // process form submissions
         $formData = $request->getPost();
+        My_Dbg::dump($formData, '$formData = $request->getPost()');
 
         // if password was given, check it for minimum
         if ($password = $formData['password']) {
@@ -119,7 +125,7 @@ class AccountController extends Zend_Controller_Action
         if ($password) {
             self::$_user->password = Taskr_Util::hashPassword($password);
         }
-        $user->save();
+        self::$_user->save();
         //self::$_mapper->saveUser(self::$_user);
         self::$_redirector->gotoSimple('index', 'task');
 
@@ -130,6 +136,7 @@ class AccountController extends Zend_Controller_Action
      */
     public function loginAction()
     {
+        My_Dbg::trc(__CLASS__, __FUNCTION__);
         // forward to Task controller if user is logged in already
         if (isset(self::$_user)) {
             self::$_redirector->gotoSimple('index', 'task');
@@ -249,6 +256,7 @@ END;
      */
     public function logoutAction()
     {
+        My_Dbg::trc(__CLASS__, __FUNCTION__);
         // bail out if nobody is logged in
         if (!isset(self::$_user)) {
             self::$_redirector->gotoSimple('index', 'index');
@@ -268,6 +276,7 @@ END;
      */
     public function signupAction()
     {
+        My_Dbg::trc(__CLASS__, __FUNCTION__);
         // forward to Task controller if user is logged in already
         if (isset(self::$_user)) {
             self::$_redirector->gotoSimple('index', 'task');
@@ -283,7 +292,7 @@ END;
             $username = $formData['username'];
             if (strlen($username) < 6) {
                 $formErrors['username'] = 'At least 6 characters, please';
-            } elseif (Taskr_Model_User::getByUsername($username)) {
+            } elseif (self::$_mapper->findUserByUsername($username)) {
                 $formErrors['username'] = 'This username is already taken';
             }
 
@@ -316,15 +325,12 @@ END;
                     'password' => Taskr_Util::hashPassword($password),
                     // @todo add support for tzDiff
                 ));
-        	My_Dbg::log('$user->save()');
                 $user->save();
 
                 // process newly-entered email
-        	My_Dbg::log('$this->_addEmail($user, $email)');
                 $this->_addEmail($user, $email);
 
                 // proceed to login
-        	My_Dbg::log('$this->loginAction()');
                 $this->loginAction();
             }
         }
@@ -339,6 +345,7 @@ END;
      */
     public function resetPasswordAction()
     {
+        My_Dbg::trc(__CLASS__, __FUNCTION__);
         // forward to Task controller if user is logged in already
         if (isset(self::$_user)) {
             self::$_redirector->gotoSimple('index', 'task');
@@ -369,7 +376,7 @@ END;
         // bail out if uid or key is missing or invalid
         if (!$uid ||
             !$key ||
-            !($user = self::$_mapper->findUser($uid)) ||
+            !($user = self::$_mapper->findUserById($uid)) ||
             !Taskr_Util::testPassword($user->password, $key)
         ) {
             $formErrors['key'] = <<<END
@@ -400,6 +407,7 @@ END;
      */
     public function confirmEmailAction()
     {
+        My_Dbg::trc(__CLASS__, __FUNCTION__);
         // get parameters from the URL
         $uid = $this->_getParam('uid');
         $key = $this->_getParam('key');

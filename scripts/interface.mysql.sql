@@ -8,8 +8,8 @@
  */
 
 drop procedure if exists `p_user_create`;   -- create new user
-drop procedure if exists `p_user_connect`;  -- set up user environment
 drop procedure if exists `p_user_save`;     -- save user data changes
+drop procedure if exists `p_user_connect`;  -- set up user environment
 drop procedure if exists `pv_user_byname`;  -- fetch user record
 drop procedure if exists `p_task_create`;
 drop procedure if exists `p_task_save`;
@@ -70,8 +70,8 @@ create procedure p_user_create
      we have to rely on odd-ball solution here via session variable @res1  */	
 		uname	varchar(30),
 		pwd		varchar(255),
-		mail	varchar(30),
-		tz		smallint
+		tz		smallint,
+		mailTmp	varchar(30)
 	)
 begin
 	set @res1 = NULL, @error = NULL;
@@ -81,10 +81,10 @@ begin
     
     if @error is NULL then
 		insert into t_user (
-			username, password, email, tzDiff, 
+			username, password, emailTmp, tzDiff, 
 			added, updated
 		) values (
-			uname, pwd, mail, ifnull(tz,0),
+			uname, pwd, mailTmp, ifnull(tz,0),
 			NULL, NULL	           			-- force CURRENT_TIMESTAMP
 		);
   		set @res1 := LAST_INSERT_ID();	-- anal tooth brushing (for bug #27362)
@@ -102,14 +102,15 @@ create procedure p_user_save
 (
 		uid		integer unsigned,
 		pwd		varchar(255),
-		mail	varchar(30),
-		tz		smallint
+		tz		smallint,
+		mailTmp varchar(30),
+		mail	varchar(30)
 	)
 begin
 	set @res1 = NULL, @error = NULL;
 	
 	update t_user
-		set password = pwd, email = mail, tzDiff = tz,
+		set password = pwd, email = mail, emailTmp = mailTmp, tzDiff = tz,
 			updated = NULL
 		where id = uid;
 		

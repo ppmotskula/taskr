@@ -116,7 +116,7 @@ class Taskr_Model_DataMapper
     }
     
     /**
-     * Save user data and create class instance
+     * Save user data and set user id, if it was missing.
      * @return int | string
      */
     public function userSave( Taskr_Model_User $obj )
@@ -125,7 +125,7 @@ class Taskr_Model_DataMapper
         
         if ( $obj->id ) {      // just save changes
             $requireKey = FALSE;
-            $stmt = self::$_db->prepare('call p_user_save(?,?,?,?)');
+            $stmt = self::$_db->prepare('call p_user_save(?,?,?,?,?)');
             $stmt->bindValue(1, $obj->id, PDO::PARAM_INT);
         } else {                // create new user
             $requireKey = TRUE;
@@ -133,9 +133,11 @@ class Taskr_Model_DataMapper
             $stmt->bindValue(1, $obj->username, PDO::PARAM_STR);
         }
         $stmt->bindValue(2, $obj->password, PDO::PARAM_STR);
-        $stmt->bindValue(3, $obj->email, PDO::PARAM_STR);
-        $stmt->bindValue(4, $obj->tzDiff, PDO::PARAM_INT);
-        
+        $stmt->bindValue(3, $obj->tzDiff, PDO::PARAM_INT);
+        $stmt->bindValue(4, $obj->emailTmp, PDO::PARAM_STR);
+        if( !$requireKey ) { 
+            $stmt->bindValue(5, $obj->email, PDO::PARAM_STR);
+        }
         if( !is_string($data = $this->_execForResult($stmt)) ) {
             $data = $data[0];
             
@@ -148,7 +150,28 @@ class Taskr_Model_DataMapper
      * Fetch user data and create class instance
      * @return NULL | Taskr_Model_User
      */
-    public function userFetch( $userName )
+    public function findUserById( $userId )
+    {
+        My_Dbg::trc(__CLASS__, __FUNCTION__, $userId);
+        
+        $stmt = self::$_db->prepare(
+            'SELECT id, username, password, email, emailTmp' .
+            ', tzDiff, activeTask, proUntil, credits, added' .
+            ' FROM t_user WHERE id = ? AND ' .
+            '(proUntil is NULL OR proUntil > now())' );
+        $stmt->bindValue(1, $userId, PDO::PARAM_INT);
+        
+        if ( $data = $this->_execForRows($stmt) ) { 
+            $data = new Taskr_Model_User($data[0]);
+        }
+        return $data;
+    }
+    
+    /**
+     * Fetch user data and create class instance
+     * @return NULL | Taskr_Model_User
+     */
+    public function findUserByUsername( $userName )
     {
         My_Dbg::trc(__CLASS__, __FUNCTION__, $userName);
         

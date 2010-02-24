@@ -117,7 +117,7 @@ class Taskr_Model_User extends My_RmoAbstract
     	    if ( !self::$_rmoManager ) {
     	        self::_initRmoManager();
     	    }
-    	    $user = Taskr_Model_DataMapper::getInstance()->userFetch( $username );
+    	    $user = Taskr_Model_DataMapper::getInstance()->findUserByUsername( $username );
     	    // $user = self::dispatchMsg( self::NAME, array( 'GET', $username ) );
      	}
      	return $user;
