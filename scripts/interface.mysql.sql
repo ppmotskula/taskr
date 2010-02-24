@@ -107,15 +107,15 @@ create procedure p_user_save
 		mail	varchar(30)
 	)
 begin
-	set @res1 = NULL, @error = NULL;
-	
 	update t_user
 		set password = pwd, email = mail, emailTmp = mailTmp, tzDiff = tz,
 			updated = NULL
 		where id = uid;
 		
-	if ROW_COUNT() <= 0 then
-	     set @error = 'operation failed';
+	set @res1 = NULL, @error = NULL, @i = 1;  -- row_count(); unexplained "-1"
+
+	if @i <= 0 then
+	     set @error = concat( 't_user update failed:', conv(@i,10,-10));
 	end if;
 end //
 

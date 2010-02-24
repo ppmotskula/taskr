@@ -473,6 +473,7 @@ END;
                 'uid' => $user->id,
                 'key' => Taskr_Util::hashPassword($email),
             ));
+        My_Dbg::log($link);
         $mail = new Zend_Mail('utf-8');
         $mail
             ->setFrom('support@taskr.eu', 'Taskr')
@@ -494,6 +495,7 @@ END
         try {
             $mail->send();
         } catch(Exception $e) {
+            My_Dbg::log('failed to send e-mail!');
             return FALSE;
         }
 
