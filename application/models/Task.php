@@ -154,28 +154,15 @@ class Taskr_Model_Task extends My_RmoAbstract
      * Check if the task is running
      * @return bool
      */
-    public function isActive()
+    public function isRunning()
     {
         return ($this->lastStarted > $this->lastStopped);
     }
     
     /**
-     * Place yourself into data storage and connect to business model
-     * @usedby TaskController::addAction()
-     */
-    public function checkIn()
-    {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, '$this->title');
-        Taskr_Model_DataMapper::getInstance()->taskSave($this, TRUE);
-        // $this->dispatch('SAVE');
-        $this->_scrapChanged = FALSE;
-        return $this;
-    }
-
-    /**
      * If task is the selected one, then all scrap will be given, possibly queing
      * it from the database.
-     * Otherwise, we give just a brrief line of scrap for indication.
+     * Otherwise, we give just a brief line of scrap for indication.
      */
     public function getScrap()
     {
@@ -200,6 +187,14 @@ class Taskr_Model_Task extends My_RmoAbstract
             $this->_scrapChanged = TRUE;
         }
     }
+    
+    /**
+     * @property-read string scrapLine
+     */
+    public function getScrapLine()
+    {
+        return $this->scrapLine();
+    }
 
     /**
      * @property-read boolean finished
@@ -219,8 +214,15 @@ class Taskr_Model_Task extends My_RmoAbstract
     
    
     /**
+     * Tells the mapper to start the task
+     */
+    public function start()
+    {
+        Taskr_Model_DataMapper::getInstance()->taskStart($this->id);
+    }
+
+    /**
      * Stop the task
-     * @return not-NULL if the task was running
      */
     public function stop()
     {
@@ -248,23 +250,26 @@ class Taskr_Model_Task extends My_RmoAbstract
      * Tells the mapper to archive/unarchive the task
      *
      * @param bool $archive OPTIONAL unarchives the task if set to FALSE
+     * @return Taskr_Model_Task 
      */
     public function archive($archive = TRUE)
     {
         My_Dbg::trc(__CLASS__, __FUNCTION__, $this->id);
         $stat = $this->_magicFlags & ~self::ARCHIVE_FLAG;
         $this->_magicFlags = $stat | ($archive ? self::ARCHIVE_FLAG : 0);
-        $this->save();
+        return $this->save();
     }
 
     /**
      * Tells the mapper to save the task
+     * @return Taskr_Model_Task
      */
     public function save()
     {
-        Taskr_Model_DataMapper::getInstance()->taskSave($this, $this->_scrapChanged);
+        Taskr_Model_DataMapper::getInstance()->saveTask($this, $this->_scrapChanged);
         // $this->dispatch( 'SAVE' );
         $this->_scrapChanged = FALSE;
+        return $this;
     }
     
     /**
@@ -291,7 +296,7 @@ class Taskr_Model_Task extends My_RmoAbstract
      * @todo implement a permanent solution for UI task status indication
      * @usedby views/scripts/task/index.phtml
      */
-    public function getScrapline($outlen = 80, $separator = ' - ')
+    public function scrapLine($outlen = 80, $separator = ' - ')
     {
         My_Dbg::trc(__CLASS__, __FUNCTION__, $this->id);
     	$result = ''; $scrap = "(#{$this->id})";              //!debug $this->scrap;

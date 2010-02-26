@@ -263,8 +263,7 @@ class TaskController extends Zend_Controller_Action
 
                 // try to add the new task
                 try {
-                	$task->checkIn();    // Connect to Business Object Model
-                    //self::$_user->addTask($task);
+                    self::$_user->addTask($task);
                 } catch(Exception $e) {
                     // just ignore the exception -- task couldn't be created
                     My_Dbg::log('TaskController: COULD NOT add a task #' . $task->id );

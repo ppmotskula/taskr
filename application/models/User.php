@@ -157,7 +157,7 @@ class Taskr_Model_User extends My_RmoAbstract
     */
     public function save()
     {
-        return Taskr_Model_DataMapper::getInstance()->userSave( $this );
+        return Taskr_Model_DataMapper::getInstance()->saveUser( $this );
         // return $this->dispatch( 'SAVE' );
     }
      
@@ -186,8 +186,8 @@ class Taskr_Model_User extends My_RmoAbstract
         }
 
         $task->userId = $this->id;
-        //Taskr_Model_DataMapper::getInstance()->saveTask($task);
-        return $task->checkIn();
+
+        return $task->save();
     }
 
    /**

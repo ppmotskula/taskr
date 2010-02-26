@@ -119,7 +119,7 @@ class Taskr_Model_DataMapper
      * Save user data and set user id, if it was missing.
      * @return int | string
      */
-    public function userSave( Taskr_Model_User $obj )
+    public function saveUser( Taskr_Model_User $obj )
     {
         My_Dbg::trc(__CLASS__, __FUNCTION__, $obj->username . '(#' . $obj->id . ')' );
         
@@ -281,9 +281,10 @@ class Taskr_Model_DataMapper
 
     /**
      * Save task data and create class instance
-     * @return int | string
+     * @return int task id
+     * @throw exception on database fault
      */
-    public function taskSave( $obj, $scrapWasChanged = NULL )
+    public function saveTask( $obj, $scrapWasChanged = NULL )
     {
         My_Dbg::trc(__CLASS__, __FUNCTION__, $obj->id);
         $requireKey = NULL; $transaction = FALSE;
@@ -292,8 +293,9 @@ class Taskr_Model_DataMapper
         
         if ( strlen($scrap) >= self::SHORT_SCRAP_LIMIT )
         {
-            self::$_db->beginTransaction();
-            $inTransaction = $scrapWasChanged;
+            if ( $inTransaction = $scrapWasChanged ) {
+                self::$_db->beginTransaction();
+            }
             $scrap = substr( $scrap, 0, self::SHORT_SCRAP_LIMIT );
         }
         try
@@ -324,8 +326,6 @@ class Taskr_Model_DataMapper
                 $obj->id = $data;
             }
     
-            // if( $requireKey ) { $obj->id = $data; }
-
             if( $inTransaction ) {
                 self::$_db->commit();
             }

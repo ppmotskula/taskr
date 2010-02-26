@@ -224,6 +224,8 @@ begin
           
 		if ROW_COUNT() <= 0 then
 	    	call p_myexception('p_task_save: no tasks updated');
+	    else
+	    	set @res1 = @taskr_task;
         end if;
     end if;
 
