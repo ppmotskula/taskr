@@ -302,7 +302,8 @@ class Taskr_Model_DataMapper
                 if ( $inTransaction ) {
                     $this->_scrapSave( NULL, $obj->scrap );
                 }
-                $stmt = self::$_db->prepare('call p_task_save(?,?,?,?)');
+                $stmt = self::$_db->prepare('call p_task_save(?,?,?,?,?)');
+                $stmt->bindValue(++$i, $obj->flags, PDO::PARAM_INT);
             } else {                // create new user
                 $stmt = self::$_db->prepare('call p_task_create(?,?,?,?,?)');
                 $stmt->bindValue(++$i, $obj->title, PDO::PARAM_STR);
@@ -370,16 +371,16 @@ class Taskr_Model_DataMapper
 
 
     /**
-     * Save task data and create class instance
+     * Stop or finish the task
      * @return int | string
      */
     public function taskStop( $obj )
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $obj->id);
+        My_Dbg::trc(__CLASS__, __FUNCTION__, $obj->id . '.' . $obj->flags);
         
         $stmt = self::$_db->prepare('call p_task_stop(?,?)');
         $stmt->bindValue(1, $obj->id, PDO::PARAM_INT);
-        $stmt->bindValue(2, $obj->finished, PDO::PARAM_INT);
+        $stmt->bindValue(2, $obj->flags, PDO::PARAM_INT);
         $this->_execForResult($stmt);
     }
     
@@ -388,7 +389,7 @@ class Taskr_Model_DataMapper
         My_Dbg::trc(__CLASS__, __FUNCTION__, $userId);
         
         $stmt = self::$_db->prepare(
-            'update t_task set archived = 2 where userId = ? and finished > 0');
+            'update t_task set flags = flags | 16 where userId = ? and flags < 16');
         $stmt->bindValue(1, $userId, PDO::PARAM_INT);
         $this->_execForResult($stmt);
     }

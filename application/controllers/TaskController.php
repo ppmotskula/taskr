@@ -149,19 +149,16 @@ class TaskController extends Zend_Controller_Action
                         break;
                     }
 
-                    $task->save();			// no errors, save the (possible) changes
-                    
-                    //My_Dbg::dump($formData,'** $formData **');
-                    if ( array_key_exists('finish', $formData )  &&   //!val quick fix
-                         $formData['finish']) {
+                    if ( $formData['finish']) {
                         $task->finish();
-                    	self::$_user->activateTaskById(NULL);
+                    }else{
+                    	$task->save();
                     }
                     self::$_redirector->gotoSimple('index', 'task');
                 case 'cancel':
                     self::$_redirector->gotoSimple('index', 'task');
                 case 'stop':
-                    self::$_user->activateTaskById(NULL);
+                    $task->stop();
                     self::$_redirector->gotoSimple('index', 'task');
                 // ignore any other buttons including 'edit'
             }
@@ -284,7 +281,7 @@ class TaskController extends Zend_Controller_Action
     public function startAction()
     {
         if ( $taskId = $this->_getParam('id', 0) ) {
-            self::$_user->activateTaskById($taskId);
+            Taskr_Model_DataMapper::getInstance()->taskStart($taskId);
         }
 
         self::$_redirector->gotoSimple('index', 'task');

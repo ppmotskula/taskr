@@ -263,7 +263,9 @@ END;
         }
 
         // stop active task if any
-        self::$_user->activateTaskById(NULL);
+        if ($task = self::$_user->getActiveTask()) {
+            $task->stop();
+        }
 
         // clear identity, forget me, and go to welcome page
         Zend_Auth::getInstance()->clearIdentity();

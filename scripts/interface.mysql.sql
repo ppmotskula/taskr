@@ -144,9 +144,9 @@ begin
         id, userId, projectId, title, duration,
         unix_timestamp(liveline) as liveline,
         unix_timestamp(deadline) as deadline,
-        added, lastStarted, lastStopped, scrap
+        flags, added, lastStarted, lastStopped, scrap
       from t_task
-      where userId = @taskr_user and finished = 0 and id = @taskr_task;    
+      where userId = @taskr_user and id = @taskr_task;    
 end //
 
 /**
@@ -194,6 +194,7 @@ end //
  */
 create procedure p_task_save		-- Save task after editing
 (
+		status  smallint,
 		proj_id	integer unsigned,
 		livelin	integer unsigned,
 		deadlin	integer unsigned,
@@ -218,7 +219,7 @@ begin
         update t_task
           set	liveline = FROM_UNIXTIME(livelin), projectId = proj_id, 
         		deadline = FROM_UNIXTIME(deadlin), scrap = s_scrap,
-        		updated = NULL
+        		flags = status, updated = NULL
           where id = @taskr_task;
           
 		if ROW_COUNT() <= 0 then
@@ -277,7 +278,7 @@ end //
 create procedure p_task_stop
 (
   		task_id	integer unsigned,
-  		finish	integer
+  		status	smallint
 	)
 begin
     declare t int unsigned DEFAULT UNIX_TIMESTAMP();
@@ -291,7 +292,7 @@ begin
     
 	update t_task
 	  set lastStopped = t, duration = duration + (t - lastStarted),
-	      finished = finish, updated = NULL
+	      flags = status, updated = NULL
 	    where id = task_id and userId = @taskr_user and lastStarted > lastStopped;
 	    
 	if ROW_COUNT() <= 0 then
@@ -387,7 +388,7 @@ begin
 			unix_timestamp(deadline) as deadline,
 			added, lastStarted, lastStopped, scrap
 		  from t_task
-		  where    userId = @taskr_user and finished = 0
+		  where    userId = @taskr_user and flags < 8
 			  and (@taskr_task is NULL or id <> @taskr_task)
 			  and (project is NULL or projectId = project)
 			  and ( (what = 'ove' and deadline < today)
@@ -422,7 +423,7 @@ as select
         unix_timestamp(deadline) as deadline,
         added, lastStarted, lastStopped, scrap
   from t_task
-    where userId = f_user_id() and finished > 0 and archived = 0
+    where userId = f_user_id() and flags >= 8 and flags < 16
     order by lastStopped ASC;
 
 
@@ -438,6 +439,6 @@ as select
         unix_timestamp(deadline) as deadline,
         added, lastStarted, lastStopped, scrap
   from t_task
-    where userId = f_user_id() and archived
+    where userId = f_user_id() and flags >= 16
     order by lastStopped ASC;
 

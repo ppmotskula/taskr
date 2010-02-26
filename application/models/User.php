@@ -21,27 +21,56 @@
  */
 class Taskr_Model_User extends My_RmoAbstract
 {
+
+    /**
+     * @ignore
+     */
     const NAME = 'user';
     
     /**
-     * Properties manipulated by MagicAbstract base class.
-     * @ignore
+     * @ignore (magic property)
      */
     protected $_magicId;
-    protected $_magicUsername;
-    protected $_magicPassword;
-    protected $_magicEmail;
-    protected $_magicEmailTmp;
-    protected $_magicTzDiff;
-    protected $_magicProUntil;
-    protected $_magicCredits;
-    protected $_magicAdded;
-    
+
     /**
-     * active task object
-     * @todo check logics ... false etc.
+     * @ignore (magic property)
      */
-    protected $_activeTask;
+    protected $_magicUsername;
+
+    /**
+     * @ignore (magic property)
+     */
+    protected $_magicPassword;
+
+    /**
+     * @ignore (magic property)
+     */
+    protected $_magicEmail;
+
+    /**
+     * @ignore (magic property)
+     */
+    protected $_magicEmailTmp;
+
+    /**
+     * @ignore (magic property)
+     */
+    protected $_magicTzDiff;
+
+    /**
+     * @ignore (magic property)
+     */
+    protected $_magicProUntil;
+
+    /**
+     * @ignore (magic property)
+     */
+    protected $_magicCredits;
+
+    /**
+     * @ignore (magic property)
+     */
+    protected $_magicAdded;
     
     /*
      * RmoManager
@@ -62,7 +91,7 @@ class Taskr_Model_User extends My_RmoAbstract
     }
     
    /**
-    * Initiate working context for user. Called by Controller init()
+    * Initiate working context for user. Called by ...Controller::init()
     *
     * This method should be called for authenticated user only. 
     * @usedby TaskController.init()
@@ -162,31 +191,6 @@ class Taskr_Model_User extends My_RmoAbstract
     }
 
    /**
-    * Start specified task
-    *
-    * If there is other task running, it will be stopped.
-    * Data storage will be synchronized. This is the only entry for UI.
-    * @usedby TaskController
-    *
-    * @param int task index or NULL
-    */
-    public function activateTaskById( $id )
-    {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
-        
-        $task = $this->_activeTask;
-        $this->_activeTask = NULL;                // invalidate, so it will be loaded again
-
-        if ( $id ) {
-            Taskr_Model_DataMapper::getInstance()->taskStart($id);
-            // self::dispatchMsg( 'task' ,'START', intval($id) );
-        } elseif( $task ) {
-            Taskr_Model_DataMapper::getInstance()->taskStop($task);
-            // $task->stop();
-        }
-    }
-	
-   /**
     * Retrieves the user's active task from the mapper
     * @usedby TaskController
     *
@@ -194,14 +198,7 @@ class Taskr_Model_User extends My_RmoAbstract
     */
     public function getActiveTask()
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
-        
-    	if ( !$this->_activeTask ) {
-            $this->_activeTask = 
-                Taskr_Model_DataMapper::getInstance()->loadActiveTask();
-    	    // self::dispatchMsg( 'task' ,'GET' ) );
-        }
-        return $this->_activeTask;
+        return Taskr_Model_DataMapper::getInstance()->loadActiveTask();
     }
 
     /**

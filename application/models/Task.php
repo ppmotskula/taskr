@@ -36,33 +36,80 @@ class Taskr_Model_Task extends My_RmoAbstract
      * When these values are changed, data repository (mapper) should be modified accordingly.   
      * For the sake of debugging, these values are human readable right now.
      */
-    const ILLEGAL  = '*BAD*';
-    const NORMAL   = 'normal';
-    const FUTURE   = 'future';
-    const TODAY    = 'today';
-    const OVERDUE  = 'overdue';
-    const FINISHED = 'finished';
-    const ARCHIVED = 'archived';
-    const NAME     = 'task';
-    
+    const ILLEGAL       = '*BAD*';
+    const NORMAL        = 'normal';
+    const FUTURE        = 'future';
+    const TODAY         = 'today';
+    const OVERDUE       = 'overdue';
+    const FINISHED      = 'finished';
+    const ARCHIVED      = 'archived';
+    const FINISH_FLAG   = 8;
+    const ARCHIVE_FLAG  = 16;
+    const NAME          = 'task';
+
     /**
-     * Properties manipulated by MagicAbstract base class.
-     * @ignore
+     * @ignore (magic property)
      */
     protected $_magicId;
+
+    /**
+     * @ignore (magic property)
+     */
     protected $_magicUserId;
+
+    /**
+     * @ignore (magic property)
+     */
     protected $_magicProjectId;
+
+    /**
+     * @ignore (magic property)
+     */
     protected $_magicLiveline;
+
+    /**
+     * @ignore (magic property)
+     */
     protected $_magicDeadline;
+
+    /**
+     * @ignore (magic property)
+     */
     protected $_magicLastStarted;
+
+    /**
+     * @ignore (magic property)
+     */
     protected $_magicLastStopped;
-    protected $_magicFinished;
-    protected $_magicArchived;
+
+    /**
+     * @ignore (magic property)
+     */
+    protected $_magicFlags = 0;
+
+    /**
+     * @ignore (magic property)
+     */
     protected $_magicDuration;
+
+    /**
+     * @ignore (magic property)
+     */
     protected $_magicTitle;
+
+    /**
+     * @ignore (magic property)
+     */
     protected $_magicScrap;
+
+    /**
+     * @ignore (magic property)
+     */
     protected $_magicAdded;
     
+    /**
+     * @ignore (internal)
+     */
     protected $_scrapChanged = FALSE;   // necessary for avoiding senseless db traffic
 
 
@@ -89,8 +136,8 @@ class Taskr_Model_Task extends My_RmoAbstract
         assert( $this->id !== NULL );
         
         $res = NULL;
-		if ($this->archived)                     { $res = self::ARCHIVED; }
-		elseif ($this->finished)                 { $res = self::FINISHED; }
+		if ($this->_magicFlags >= ARCHIVE_FLAG)     { $res = self::ARCHIVED; }
+		elseif ($this->_magicFlags & FINISH_FLAG)   { $res = self::FINISHED; }
 		elseif ($this->deadline) {
 			if ($this->deadline <= time() )          { $res = self::OVERDUE; }
 			elseif ($this->deadline <= time()+86400) { $res = self::TODAY; }
@@ -155,26 +202,46 @@ class Taskr_Model_Task extends My_RmoAbstract
     }
 
     /**
+     * @property-read boolean finished
+     */
+    public function getFinished()
+    {
+        return ($this->_magicFlags & self::FINISH_FLAG) == self::FINISH_FLAG;
+    }
+    
+    /**
+     * @property-read boolean archived
+     */
+     public function getArchived()
+    {
+        return ($this->_magicFlags & self::ARCHIVE_FLAG) == self::ARCHIVE_FLAG;
+    }
+    
+   
+    /**
      * Stop the task
      * @return not-NULL if the task was running
      */
     public function stop()
     {
-        //My_Dbg::trc(__CLASS__, __FUNCTION__, $this->id);
-        if ( $this-> isActive() ) {
-    	    return $this->duration += ($this->lastStopped = time()) - $this->lastStarted;
-    	}
+        Taskr_Model_DataMapper::getInstance()->taskStop($this);
     }
 
     /**
-     * Finish the task.
+     * Finish (and by default - archive) the task.
      */
-    public function finish()
+    public function finish($archive = TRUE)
     {
         My_Dbg::trc(__CLASS__, __FUNCTION__, $this->id);
-    	if ($this->stop()) {
-            return $this->finished = TRUE;
+        
+        if ($this->project) {
+            $this->project->finish($this);
         }
+        $flags = self::FINISH_FLAG;
+        if ( $archive ) { $flags |= self::ARCHIVE_FLAG; }
+        
+        $this->_magicFlags |= $flags;
+    	$this->stop();
     }
 
     /**
@@ -185,8 +252,9 @@ class Taskr_Model_Task extends My_RmoAbstract
     public function archive($archive = TRUE)
     {
         My_Dbg::trc(__CLASS__, __FUNCTION__, $this->id);
-        Taskr_Model_DataMapper::getInstance()->archiveTask($this, $archive);
-        // $this->dispatch( 'ARHIVE' );
+        $stat = $this->_magicFlags & ~self::ARCHIVE_FLAG;
+        $this->_magicFlags = $stat | ($archive ? self::ARCHIVE_FLAG : 0);
+        $this->save();
     }
 
     /**
