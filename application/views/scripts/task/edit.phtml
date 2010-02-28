@@ -2,7 +2,7 @@
 <form action="" method="post">
 <p>Editing: <b><?php echo $this->task->title; ?></b><span id="timer"></span><br />
 Project:
-<?php if($unfinishedProjects = $this->user->getProjects()): ?>
+<?php if($unfinishedProjects = $this->user->unfinishedProjects()): ?>
 <label for="projects">choose</label>
 <select name="projects" id="projects" accesskey="p">
     <option value="0"<?php if (!$this->task->project) { echo ' selected'; } ?>>(no project)</option>

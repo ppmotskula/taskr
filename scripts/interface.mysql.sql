@@ -18,12 +18,15 @@ drop procedure if exists `p_task_stop`;
 drop procedure if exists `p_task_start`;
 drop procedure if exists `pv_tasks`;
 drop procedure if exists `pv_activetask`;
+drop procedure if exists `p_proj_create`;
+drop procedure if exists `p_proj_finish`;
 drop procedure if exists `p_myexception`;
 
 drop function  if exists `f_user_id`;
 
 drop view      if exists `v_tasks_arch`;
 drop view      if exists `v_tasks_fini`;
+drop view      if exists `v_projects`;
 
 delimiter //
 
@@ -56,8 +59,8 @@ create procedure p_user_connect
 begin
 	set @error = 'record not found';
 
-    select id, activeTask, UNIX_TIMESTAMP(), NULL
-      into @taskr_user, @taskr_task, @taskr_connected, @error
+    select id, activeTask, UNIX_TIMESTAMP(), NULL, NULL, NULL
+      into @taskr_user, @taskr_task, @taskr_connected, @error, @res1, @res2
       from t_user where id = userId;
 end //
 
@@ -129,8 +132,10 @@ create procedure pv_user_byname
   )
 begin
     select	sql_no_cache
-    	id, username, password, email, tzDiff,
-    	/* activeTask, */ proUntil, credits, added
+    	id, username, password, email, emailTmp, tzDiff,
+    	/* activeTask, */ 
+    	unix_timestamp(proUntil) as proUntil, credits, 
+    	unix_timestamp(added) as added
      from t_user where username = uname;
 end //
 
@@ -258,8 +263,8 @@ begin
         	call p_myexception('p_scrap_save: could not read task record');
         else
 			if mylen < 60 then					-- we made a long scrap from short one
-				insert into t_scrap ( taskId, longScrap, added, updated )
-					values ( task_id, long_scrap, NULL, NULL );
+				insert into t_scrap ( taskId, userId, longScrap, added, updated )
+					values ( task_id, @taskr_user, long_scrap, NULL, NULL );
 			else
 				update t_scrap set longScrap = long_scrap, updated = NULL
 					where taskId = @taskr_task;
@@ -275,21 +280,38 @@ end //
 /**	
  * Stop the task task.
  * Set @res1 to Unix timestamp of when this happened.
- * @todo checks, documenting
+ * If this was he last unfinshed task of a project, finish the project and set @res2 to project id.
+ * @todo checks, transaction, documenting
  */
 create procedure p_task_stop
 (
   		task_id	integer unsigned,
+  		proj_id integer unsigned,
   		status	smallint
 	)
 begin
-    declare t int unsigned DEFAULT UNIX_TIMESTAMP();
+    declare t int unsigned DEFAULT unix_timestamp();
+	declare n int unsigned default NULL;
     
-	set @res1 = NULL, @error = NULL;
+	set @res1 = NULL, @res2 = NULL, @error = NULL;
 	
     if @taskr_nohaste is NULL then
     	update t_user set activeTask = NULL
     	  where id = @taskr_user and activeTask = task_id;
+    	  
+    	if proj_id is not NULL and (status & 8) then
+    		select count(*) into n from t_task
+    			where projectId = proj_id and flags < 8;
+    			
+    		if n = 1 then
+    			start transaction;
+    			
+    			update t_project set flags = status, finished = from_unixtime(t)
+    				where id = proj_id;
+    				
+    			set @res2 = proj_id;
+    		end if;
+    	end if;
     end if;
     
 	update t_task
@@ -298,9 +320,10 @@ begin
 	    where id = task_id and userId = @taskr_user and lastStarted > lastStopped;
 	    
 	if ROW_COUNT() <= 0 then
-	    call p_myexception('p_task_stop: no tasks updated');
-	else
-		set @res1 = t;
+		if n = 1 then rollback; end if;
+		call p_myexception('p_task_stop: no tasks updated');
+	else if n = 1 then commit; end if;
+		set @res1 = t, @error = NULL;
 	end if;
 end //
 
@@ -315,12 +338,14 @@ create procedure p_task_start
 	)
 begin
 	declare othertask integer unsigned;
+	declare otherproj integer unsigned;
 	
-	select activeTask into othertask from t_user where id = @taskr_user;
+	select sql_no_cache activeTask into othertask from t_user where id = @taskr_user;
 	
 	if othertask is not NULL then
 		set @taskr_nohaste = ifnull(@taskr_nohaste,'p_task_start');
-		call p_task_stop( othertask, 0 );
+		select sql_no_cache projectId into otherproj from t_task where id = othertask;
+		call p_task_stop( othertask, otherproj, 0 );
 	else
 		set @res1 = UNIX_TIMESTAMP(), @error = NULL;
 	end if;
@@ -385,10 +410,11 @@ begin
     
     if not bdone then
 		select
-			id, userId, projectId, title, duration,
+			id, userId, projectId, title, duration, flags,
 			unix_timestamp(liveline) as liveline,
 			unix_timestamp(deadline) as deadline,
-			added, lastStarted, lastStopped, scrap
+			unix_timestamp(added) as added,
+			lastStarted, lastStopped, scrap
 		  from t_task
 		  where    userId = @taskr_user and flags < 8
 			  and (@taskr_task is NULL or id <> @taskr_task)
@@ -406,6 +432,25 @@ begin
      end if;
 end //
 
+create procedure p_proj_create (
+	userid	integer unsigned,
+	title	varchar(30)
+)
+begin
+	insert into t_project ( userId, title, added, updated )
+		values ( userid, title, NULL, NULL );
+			
+  	set @res1 := LAST_INSERT_ID();	-- anal tooth brushing (for bug #27362)
+end //
+
+create procedure p_proj_finish
+(
+	proj_id	integer unsigned
+	)
+begin
+	update t_project set flags = 8 | 16, finished = now()+0
+		where id = proj_id;
+end //
 
 delimiter ;
 
@@ -414,33 +459,47 @@ delimiter ;
  * @todo checks, documenting
  */
 create view v_tasks_fini (
-        id, userId, projectId, title, duration,
+        id, userId, projectId, title, duration, flags,
         liveline,
         deadline,
         added, lastStarted, lastStopped, scrap
 )
 as select
-        id, userId, projectId, title, duration,
+        id, userId, projectId, title, duration, flags,
         unix_timestamp(liveline) as liveline,
         unix_timestamp(deadline) as deadline,
-        added, lastStarted, lastStopped, scrap
+		unix_timestamp(added) as added,
+        lastStarted, lastStopped, scrap
   from t_task
     where userId = f_user_id() and flags >= 8 and flags < 16
     order by lastStopped ASC;
 
 
 create view v_tasks_arch (
-        id, userId, projectId, title, duration,
+        id, userId, projectId, title, duration, flags,
         liveline,
         deadline,
         added, lastStarted, lastStopped, scrap
 )
 as select
-        id, userId, projectId, title, duration,
+        id, userId, projectId, title, duration, flags,
         unix_timestamp(liveline) as liveline,
         unix_timestamp(deadline) as deadline,
-        added, lastStarted, lastStopped, scrap
+		unix_timestamp(added) as added,
+        lastStarted, lastStopped, scrap
   from t_task
     where userId = f_user_id() and flags >= 16
     order by lastStopped ASC;
 
+/**
+ * All projects of the current user
+ */
+create view v_projects (
+		id, userId, title, flags, finished, added
+)
+as select
+		id, userId, title, flags,
+		unix_timestamp(finished),
+		unix_timestamp(added)
+	from	t_project
+		where	userId = f_user_id();

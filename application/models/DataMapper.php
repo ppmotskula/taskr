@@ -91,7 +91,7 @@ class Taskr_Model_DataMapper
         $result = $data['@error'];
          
         if ( NULL === $result ) {
-            $result = array( $data['@res1'] );
+            $result = array( $data['@res1'], $data['@res2'] );
         } elseif ( !$noExceptions ) {
             throw new exception($result);
         }
@@ -114,6 +114,51 @@ class Taskr_Model_DataMapper
         }
         return $data;
     }
+    
+    /**
+     * Set up authenticated user connection environment in database server
+     *
+     * @param int $userId
+     * @todo make it lazy and protected
+     */
+    public function initWorkContext( $userId )
+    {
+        My_Dbg::trc(__CLASS__, __FUNCTION__, $userId);
+        $stmt = self::$_db->prepare('call p_user_connect(?)');
+        $stmt->bindValue(1, $userId, PDO::PARAM_INT);
+        $this->_execForResult($stmt);
+    }
+    
+    
+    /**
+     * Returns the instance of the class, setting it up on the first call
+     * @return Taskr_Model_DataMapper
+     */
+    public static function getInstance()
+    {
+        if (!isset(self::$_instance)) {
+            $class = __CLASS__;
+            self::$_instance = new $class;
+        }
+        return self::$_instance;
+    }
+
+
+    public function loadItems( array $which, $args = NULL )
+    {
+        My_Dbg::trc(__CLASS__, __FUNCTION__, implode('.', $which ));
+       	
+       	switch ( $k = array_shift($which) ) {
+       	case 'task':
+       	    $res = $this->_loadTasks( $which, $args );
+       	    break;
+       	default:
+       	    throw new exception( "List of {$k} required");
+       	}
+       	return $res;
+    }
+
+    /****** SECTION: User ******/
     
     /**
      * Save user data and set user id, if it was missing.
@@ -155,10 +200,10 @@ class Taskr_Model_DataMapper
         My_Dbg::trc(__CLASS__, __FUNCTION__, $userId);
         
         $stmt = self::$_db->prepare(
-            'SELECT id, username, password, email, emailTmp' .
-            ', tzDiff, activeTask, proUntil, credits, added' .
-            ' FROM t_user WHERE id = ? AND ' .
-            '(proUntil is NULL OR proUntil > now())' );
+            'SELECT id, username, password, email, emailTmp, tzDiff, credits' .
+            ', unix_timestamp(proUntil) as proUntil' .
+            ', unix_timestamp(added) as added' .
+            ' FROM t_user WHERE id = ?' );
         $stmt->bindValue(1, $userId, PDO::PARAM_INT);
         
         if ( $data = $this->_execForRows($stmt) ) { 
@@ -208,48 +253,23 @@ class Taskr_Model_DataMapper
     }
 
     /**
-     * Set up authenticated user connection environment in database server
+     * Deletes the user account and any data associated with it
      *
-     * @param int $userId
-     * @todo make it lazy and protected
+     * @param Taskr_Model_User $user
+     * @todo put it into a stored procedure
      */
-    public function initUserConnection( $userId )
+    public function deleteUser(Taskr_Model_User $user)
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $userId);
-        $stmt = self::$_db->prepare('call p_user_connect(?)');
-        $stmt->bindValue(1, $userId, PDO::PARAM_INT);
-        $this->_execForResult($stmt);
+        self::$_db->beginTransaction();
+        self::$_db->delete('t_scrap', "userId = {$user->id}");
+        self::$_db->delete('t_task', "userId = {$user->id}");
+        self::$_db->delete('t_project', "userId = {$user->id}");
+        self::$_db->delete('t_user', "id = {$user->id}");
+        self::$_db->commit();
     }
+
+    /****** SECTION: Task ******/
     
-    
-    /**
-     * Returns the instance of the class, setting it up on the first call
-     * @return Taskr_Model_DataMapper
-     */
-    public static function getInstance()
-    {
-        if (!isset(self::$_instance)) {
-            $class = __CLASS__;
-            self::$_instance = new $class;
-        }
-        return self::$_instance;
-    }
-
-
-    public function loadItems( array $which, $args = NULL )
-    {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, implode('.', $which ));
-       	
-       	switch ( $k = array_shift($which) ) {
-       	case 'task':
-       	    $res = $this->_loadTasks( $which, $args );
-       	    break;
-       	default:
-       	    throw new exception( "List of {$k} required");
-       	}
-       	return $res;
-    }
-
     /**
      * Fetches the given user's active task from the database
      *
@@ -257,7 +277,7 @@ class Taskr_Model_DataMapper
      * @return Taskr_Model_Task
      *      NULL if user not found or user has no active task
      */
-    public function loadActiveTask()
+    public function activeTask()
     {
         My_Dbg::trc(__CLASS__, __FUNCTION__);
         $stmt = self::$_db->prepare('call pv_activetask()');
@@ -306,7 +326,7 @@ class Taskr_Model_DataMapper
                 }
                 $stmt = self::$_db->prepare('call p_task_save(?,?,?,?,?)');
                 $stmt->bindValue(++$i, $obj->flags, PDO::PARAM_INT);
-            } else {                // create new user
+            } else {                // create new record
                 $stmt = self::$_db->prepare('call p_task_create(?,?,?,?,?)');
                 $stmt->bindValue(++$i, $obj->title, PDO::PARAM_STR);
                 $requireKey = TRUE;
@@ -360,7 +380,7 @@ class Taskr_Model_DataMapper
      * Save task data and create class instance
      * @return int | string
      */
-    public function taskStart( $id )
+    public function startTask( $id )
     {
         My_Dbg::trc(__CLASS__, __FUNCTION__, $id);
         
@@ -374,13 +394,14 @@ class Taskr_Model_DataMapper
      * Stop or finish the task
      * @return int | string
      */
-    public function taskStop( $obj )
+    public function stopTask( $obj )
     {
         My_Dbg::trc(__CLASS__, __FUNCTION__, $obj->id . '.' . $obj->flags);
         
-        $stmt = self::$_db->prepare('call p_task_stop(?,?)');
+        $stmt = self::$_db->prepare('call p_task_stop(?,?,?)');
         $stmt->bindValue(1, $obj->id, PDO::PARAM_INT);
-        $stmt->bindValue(2, $obj->flags, PDO::PARAM_INT);
+        $stmt->bindValue(2, $obj->projectId, PDO::PARAM_INT);
+        $stmt->bindValue(3, $obj->flags, PDO::PARAM_INT);
         $this->_execForResult($stmt);
     }
     
@@ -393,7 +414,251 @@ class Taskr_Model_DataMapper
         $stmt->bindValue(1, $userId, PDO::PARAM_INT);
         $this->_execForResult($stmt);
     }
-     
+    
+    /****** SECTION: Project ******/
+    
+    /**
+     * Fetches the given user's active project from the database
+     *
+     * @param Taskr_Model_User $user
+     * @return Taskr_Model_Project
+     *      NULL if user not found or user has no active task
+     *      or user's active task is not associated to any project
+     */
+    public function activeProject(Taskr_Model_User $user)
+    {
+        $task = $user->getActiveTask();
+        if (isset($task) && isset($task->project)) {
+            return $task->project;
+        }
+        return NULL;
+    }
+
+    /**
+     * Fetches the project by id from the database
+     *
+     * @param int $id
+     * @return Taskr_Model_Project NULL if the task is not found
+     */
+    public function findProject($id)
+    {
+        My_Dbg::trc(__CLASS__, __FUNCTION__, $id);
+        
+        $sql = 'SELECT * FROM v_projects WHERE id = ?';
+        
+        if ($res = self::$_db->fetchRow($sql, $id)) {
+            $res = new Taskr_Model_Project($res);
+        }
+        return $res;
+    }
+
+    /**
+     * Returns the sum of the durations of all tasks associated with
+     * the given project
+     *
+     * @param Taskr_Model_Project $project
+     */
+    public function projectDuration(Taskr_Model_Project $project)
+    {
+        My_Dbg::trc(__CLASS__, __FUNCTION__, $project->id);
+        
+        $sql = 'SELECT SUM(duration) FROM t_task WHERE projectId = ?';
+        $result = self::$_db->fetchOne($sql, $project->id);
+
+        return $result;
+    }
+
+    /**
+     * Save the project into the database
+     *
+     * @param Taskr_Model_Project $project
+     */
+    public function saveProject(Taskr_Model_Project $project)
+    {
+        My_Dbg::trc(__CLASS__, __FUNCTION__, $project->title);
+        
+        $user = $project->user; $i = 0;
+
+        if (!is_a($user, Taskr_Model_User) || NULL == $user->id) {
+            throw new Exception('Cannot save project with no owner');
+        }
+        if (NULL == $project->title) {
+            throw new Exception('Cannot save project without title');
+        }
+        
+        if ( $project->id ) {
+            throw new Exception('Cannot save project repeatedly');
+        }
+        
+        $stmt = self::$_db->prepare('call p_proj_create(?,?)');
+        
+        $stmt->bindValue(++$i, $project->userId, PDO::PARAM_INT);
+        $stmt->bindValue(++$i, $project->title, PDO::PARAM_STR);
+        $data = $this->_execForResult($stmt);
+        
+        $data = $data[0];
+
+        if ( !$project->id ) {
+            $project->id = $data;
+        }
+    }
+
+    /**
+     * Finishes a project if $task is its last unfinished task
+     *
+     * Returns TRUE if $task was the project's last unfinished task or
+     * FALSE if not.
+     *
+     * @param Taskr_Model_Task $task
+     * @return bool
+     * @throw Exception if $task did not belong to a project or if the
+     * project was already finished.
+     */
+    public function finishProject(Taskr_Model_Task $task)
+    {
+        if (!$task->projectId) {
+            throw new Exception('Task had no project');
+        }
+
+        // count unfinished tasks in the same project
+        $sql = 'SELECT COUNT(*) from t_task' .
+            ' WHERE projectId = ? AND flags < 8';
+        $result = self::$_db->fetchOne($sql, $task->projectId);
+
+        if (1 == $result) {
+            // this is the last unfinished task of this project,
+            // so let's finish the project too
+            $stmt = self::$_db->prepare('call p_proj_finish(?)');
+            $stmt->bindValue(1, $task->projectId, PDO::PARAM_INT);
+            $this->_execForResult($stmt);
+            $task->project->finished = $task->lastStopped;
+            return TRUE;
+        } elseif (1 < $result) {
+            // the project had other unfinished tasks as well,
+            // so we won't finish it yet
+            return FALSE;
+        } else {
+            // the project had no unfinished tasks
+            throw new Exception('The project had no unfinished tasks');
+        }
+    }
+    
+    /****** SECTION: Lists ******/
+    
+    /**
+     * Fetches the given user's archived projects completed between $fromTs and
+     * $toTs from the database.
+     *
+     * If $fromTs is not set, all archived projects will be returned.
+     *
+     * If $toTs is not set, all archived projects completed no earlier than
+     * $fromTs will be returned.
+     *
+     * @param Taskr_Model_User $user
+     * @param int $fromTs Unix timestamp
+     * @param int $toTs Unix timestamp
+     * @return array of Taskr_Model_Project
+     */
+    public function archivedProjects(Taskr_Model_User $user, $fromTs, $toTs)
+    {
+        My_Dbg::trc(__CLASS__, __FUNCTION__);
+        
+        $params[':userId'] = $user->id;
+        $sql = 'SELECT * FROM v_projects' .
+            ' WHERE userId = :userId';
+        
+        if (isset($fromTs)) {
+            $params[':fromTs'] = $fromTs;
+            $sql .= ' AND finished >= :fromTs';
+        } else {
+            $sql = ' AND finished >= unix_timestamp(Day(Now()))';
+        }
+        if (isset($toTs)) {
+            $params[':toTs'] = $toTs;
+            $sql .= ' AND finished <= :toTs';
+        }
+        
+        $sql .= ' ORDER BY finished ASC';
+        $rows = self::$_db->fetchAll($sql, $params);
+
+        // construct return array
+        $result = array();
+        foreach ($rows as $row) {
+            array_push($result, new Taskr_Model_Project($row));
+        }
+
+        return $result;
+    }
+    
+    /**
+     * Fetches the given user's archived tasks completed between $fromTs and
+     * $toTs from the database.
+     *
+     * If $fromTs is not set, all archived tasks will be returned.
+     *
+     * If $toTs is not set, all archived tasks completed no earlier than
+     * $fromTs will be returned.
+     *
+     * @param Taskr_Model_User $user
+     * @param int $fromTs Unix timestamp
+     * @param int $toTs Unix timestamp
+     * @return array of Taskr_Model_Task
+     */
+    public function archivedTasks(Taskr_Model_User $user, $fromTs, $toTs)
+    {
+        My_Dbg::trc(__CLASS__, __FUNCTION__);
+        
+        $params[':userId'] = $user->id;
+        $sql = 'SELECT * FROM v_tasks_arch' .
+            ' WHERE userId = :userId';
+        if (isset($fromTs)) {
+            $params[':fromTs'] = $fromTs;
+            $sql .= ' AND lastStopped >= :fromTs';
+        } else {
+            $sql = ' AND lastStopped >= unix_timestamp(Day(Now())';
+        }
+        if (isset($toTs)) {
+            $params[':toTs'] = $toTs;
+            $sql .= ' AND lastStopped <= :toTs';
+        }
+        $sql .= ' ORDER BY projectId ASC, lastStopped ASC';
+        $rows = self::$_db->fetchAll($sql, $params);
+
+        // construct return array
+        $result = array();
+        foreach ($rows as $row) {
+            array_push($result, new Taskr_Model_Task($row));
+        }
+
+        return $result;
+    }
+
+    
+
+    /**
+     * Fetches the given user's unfinished projects from the database
+     *
+     * @param Taskr_Model_User $user
+     * @return array of Taskr_Model_Project
+     */
+    public function unfinishedProjects(Taskr_Model_User $user)
+    {
+        My_Dbg::trc(__CLASS__, __FUNCTION__);
+        
+        $sql = 'SELECT * FROM v_projects' .
+            ' WHERE userId = ? AND finished IS NULL' .
+            ' ORDER BY title ASC';
+        $rows = self::$_db->fetchAll($sql, $user->id);
+
+        // construct and return result array
+        $result = array();
+        foreach ($rows as $row) {
+            array_push($result, new Taskr_Model_Project($row));
+        }
+        return $result;
+
+    }
+
     /**
      * Fetches the given user's tasks from the database
      * @usedby loadItems()
