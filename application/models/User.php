@@ -112,7 +112,7 @@ class Taskr_Model_User extends My_RmoAbstract
     	
      	// return Taskr_Model_DataMapper::getInstance()
      	return $this->getDispatcher()
-     	           ->initUserConnection(intval($this->id));
+     	           ->initWorkContext(intval($this->id));
      	// return $this->dispatch( 'connection' );
     }
     
@@ -198,7 +198,7 @@ class Taskr_Model_User extends My_RmoAbstract
     */
     public function getActiveTask()
     {
-        return Taskr_Model_DataMapper::getInstance()->loadActiveTask();
+        return Taskr_Model_DataMapper::getInstance()->activeTask();
     }
 
     /**
@@ -206,7 +206,7 @@ class Taskr_Model_User extends My_RmoAbstract
      *
      * @return array of Taskr_Model_Task
      */
-    public function getUpcomingTasks()
+    public function upcomingTasks()
     {
         return $this->rmoM()->loadList( 'tasks.active' );
         // return $this->dispatch( 'load', 'tasks.active' );
@@ -217,7 +217,7 @@ class Taskr_Model_User extends My_RmoAbstract
      *
      * @return array of Taskr_Model_Task
      */
-    public function getFinishedTasks()
+    public function finishedTasks()
     {
         return $this->rmoM()->loadList( 'tasks.finished' );
         // return $this->dispatch( 'load', 'tasks.finished' );
@@ -229,9 +229,10 @@ class Taskr_Model_User extends My_RmoAbstract
      * @param int $fromDate Unix timestamp of oldest task to retrieve
      * @return array of Taskr_Model_Task
      */
-    public function getArchivedTasks($fromDate)
+    public function archivedTasks($fromTs = NULL, $toTs = NULL)
     {
-        return $this->rmoM()->loadList( 'tasks.archived' );
+        return Taskr_Model_DataMapper::getInstance()->archivedTasks($this, $fromTs, $toTs);
+        // return $this->rmoM()->loadList( 'tasks.archived' );
     }
 
     /**
@@ -250,9 +251,9 @@ class Taskr_Model_User extends My_RmoAbstract
      * @todo IMPLEMENT!
      * @return Taskr_Model_Task
      */
-    public function getActiveProject()
+    public function activeProject()
     {
-        return NULL; //Taskr_Model_DataMapper::getInstance()->activeProject($this);
+        return Taskr_Model_DataMapper::getInstance()->activeProject($this);
     }
     
     /**
@@ -283,7 +284,7 @@ class Taskr_Model_User extends My_RmoAbstract
 
         if ($this->isPro() || !count($this->unfinishedProjects())) {
             // user is Pro or has no unfinished projects, go ahead
-            $project->user = $this;
+            $project->userId = $this->id;
             Taskr_Model_DataMapper::getInstance()->saveProject($project);
             return $project;
         } else {
@@ -292,21 +293,30 @@ class Taskr_Model_User extends My_RmoAbstract
     }
 
     /**
-     * @todo IMPLEMENT!
+     * Retrieves the user's unfinished projects from the mapper
+     *
+     * @return array of Taskr_Model_Project
      */
-    public function getProjects()
+    public function unfinishedProjects()
     {
-        return NULL;
+        return Taskr_Model_DataMapper::getInstance()->unfinishedProjects($this);
     }
-    
+
     /**
-     * @todo IMPLEMENT!
+     * Retrieves the user's archived projects from the mapper
+     *
+     * @param int $fromTs Unix timestamp of oldest task to retrieve
+     * @return array of Taskr_Model_Task
      */
-    public function getArchivedProjects()
+    public function archivedProjects($fromTs = NULL, $toTs = NULL)
     {
-        return NULL;
+        My_Dbg::trc(__CLASS__, __FUNCTION__);
+        My_Dbg::dump( date(DateTime::W3C,$fromTs), '$fromTs');
+        My_Dbg::dump( date(DateTime::W3C,$toTs), '$toTs');
+        return Taskr_Model_DataMapper::getInstance()->
+                archivedProjects($this, $fromTs, $toTs);
     }
-    
+
     /**
      * Check the user's Pro status
      *

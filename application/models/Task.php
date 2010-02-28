@@ -166,9 +166,9 @@ class Taskr_Model_Task extends My_RmoAbstract
      */
     public function getScrap()
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $this->id);
+        // My_Dbg::trc(__CLASS__, __FUNCTION__, $this->id);
         $ch = $this->_scrapChanged; $l = strlen($this->_magicScrap);
-        My_Dbg::log("changed: {$ch}, len={$l}");
+        //My_Dbg::log("changed: {$ch}, len={$l}");
         if ( !$this->_scrapChanged
          &&  strlen($this->_magicScrap) == Taskr_Model_DataMapper::SHORT_SCRAP_LIMIT )
         {
@@ -181,7 +181,7 @@ class Taskr_Model_Task extends My_RmoAbstract
     
     public function setScrap( $newContent )
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $this->id);
+        //My_Dbg::trc(__CLASS__, __FUNCTION__, $this->id);
         if ( $newContent != $this->_magicScrap ) {
             $this->_magicScrap = $newContent;
             $this->_scrapChanged = TRUE;
@@ -212,13 +212,21 @@ class Taskr_Model_Task extends My_RmoAbstract
         return ($this->_magicFlags & self::ARCHIVE_FLAG) == self::ARCHIVE_FLAG;
     }
     
+    /**
+     * @property-read Taskr_Model_User user
+     */
+    public function getUser()
+    {
+        return Taskr_Model_DataMapper::getInstance()->findUserById( $this->_magicUserId );
+    }
+    
    
     /**
      * Tells the mapper to start the task
      */
     public function start()
     {
-        Taskr_Model_DataMapper::getInstance()->taskStart($this->id);
+        Taskr_Model_DataMapper::getInstance()->startTask($this->id);
     }
 
     /**
@@ -226,7 +234,7 @@ class Taskr_Model_Task extends My_RmoAbstract
      */
     public function stop()
     {
-        Taskr_Model_DataMapper::getInstance()->taskStop($this);
+        Taskr_Model_DataMapper::getInstance()->stopTask($this);
     }
 
     /**
@@ -273,18 +281,22 @@ class Taskr_Model_Task extends My_RmoAbstract
     }
     
     /**
-     * @todo IMPL!
+     * Get project instance
      */
     public function getProject()
     {
+        if ( $pid = $this->_magicProjectId ) {
+            return Taskr_Model_DataMapper::getInstance()->findProject( $pid );
+        }
         return NULL;
     }
     
     /**
-     * @todo IMPL!
+     * Set project
      */
-    public function setProject( $obj )
+    public function setProject( $project )
     {
+        $this->_magicProjectId = $project ? $project->id : NULL;
     }
     
 
@@ -293,24 +305,28 @@ class Taskr_Model_Task extends My_RmoAbstract
      * Useful for brief indication e.g. in task list.
      * Parameter $outlen specifies overall width, including title and $separator.
      * If $separator is empty string, then $outlen limits scrap indication only.
+     * In development mode shows task id before the scrap!
      * @todo implement a permanent solution for UI task status indication
      * @usedby views/scripts/task/index.phtml
      */
     public function scrapLine($outlen = 80, $separator = ' - ')
     {
         My_Dbg::trc(__CLASS__, __FUNCTION__, $this->id);
-    	$result = ''; $scrap = "(#{$this->id})";              //!debug $this->scrap;
-    	//$scrap = $this->_magicScrap;
+    	$scrap = $result = ''; 
     	
-    	if ( ($txtlen = strlen($scrap)) > 0  &&             // we have anything to show and...
-    	     ($seplen = strlen($separator)) < $outlen ) {     // we have any room left
-    	    if ( $seplen > 0 ) {
-    	        $outlen -= $seplen + strlen($this->title);
+    	if( APPLICATION_ENV == 'development' ) {
+    	    $scrap = "[{$this->id}] ";
+    	}
+    	$scrap = preg_replace('/( )+/', ' ', $scrap . $this->_magicScrap);
+    	
+    	if ( ($txtlen = strlen($scrap)) > 0 ) {     // we have anything to show and...
+    	    if ( $outlen >= 0 ) {
+    	        $outlen -= strlen($this->title) + strlen($separator);
+    	    } else {
+    	        $separator = ''; $outlen = abs($outlen);
     	    }
-    	    if ( $outlen > 0 ) {
-    	        $result = preg_replace('/( )+/', ' ', $scrap);
-    	        $result = substr($result, 0, $outlen);   //!quickhack
-    	        $result = $separator . $result;
+    	    if ( $outlen > 0 ) {                    // ... and we have any room left
+    	        $result = $separator . substr($scrap, 0, $outlen);
     	    }
     	}
     	return $result;

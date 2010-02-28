@@ -95,15 +95,18 @@ class TaskController extends Zend_Controller_Action
 
                     if ($formData['project']) {
                         // new project creation requested
-                        if (!$project =
-                            self::$_user->addProject($formData['project'])
-                        ) {
-                            // couldn't create project, show error message
-                            $formErrors['project'] =
-                                'To create new projects, you must either ' .
-                                'finish an existing project or ' .
-                                'sign up for Taskr Pro.';
-                        }
+                        if ( !$formData['finish'] ) {
+                        	// there is no point to add project when finishing a task
+							if (!$project =
+								self::$_user->addProject($formData['project'])
+							) {
+								// couldn't create project, show error message
+								$formErrors['project'] =
+									'To create new projects, you must either ' .
+									'finish an existing project or ' .
+									'sign up for Taskr Pro.';
+							}
+						}
                     } elseif ($formData['projects']) {
                         // existing project selected
                         $project =
@@ -117,6 +120,7 @@ class TaskController extends Zend_Controller_Action
                         // task belonged to a project and
                         // the task's project is being changed so
                         // check if the old project must be finished
+                        // @todo: check this branch!
                         $task->project->finish($task);
                     }
 
@@ -228,7 +232,7 @@ class TaskController extends Zend_Controller_Action
                     // #NULL or #projectName found in new task's title
                     $title = trim($matches[1] . ' ' . $matches[3]);
                     $projectName = substr($matches[2], 1);
-                } elseif ($activeProject = self::$_user->getActiveProject()) {
+                } elseif ($activeProject = self::$_user->activeProject()) {
                     // no # references found in title, use current user's
                     // active project if any
                     $title = $task->title;
@@ -239,7 +243,7 @@ class TaskController extends Zend_Controller_Action
                 if (isset($projectName)) {
                     $task->title = $title;
                     // try to find an existing unfinished project first
-                    foreach (self::$_user->getProjects() as $project) {
+                    foreach (self::$_user->unfinishedProjects() as $project) {
                         if ($projectName == $project->title) {
                             $task->project = $project;
                             break;
@@ -280,7 +284,7 @@ class TaskController extends Zend_Controller_Action
     public function startAction()
     {
         if ( $taskId = $this->_getParam('id', 0) ) {
-            Taskr_Model_DataMapper::getInstance()->taskStart($taskId);
+            Taskr_Model_DataMapper::getInstance()->startTask($taskId);
         }
 
         self::$_redirector->gotoSimple('index', 'task');

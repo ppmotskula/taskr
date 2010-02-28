@@ -1,5 +1,5 @@
 /**
- * RULE: replace TIMESTAMP DEFAULT NULL --> TIMESTAMP NULL
+ * RULE: replace TIMESTAMP NULL --> TIMESTAMP NULL
  */
 -- DO NOT alter the lines above!!!
 
@@ -30,8 +30,8 @@ CREATE TABLE `t_project`
 `id` INTEGER UNSIGNED AUTO_INCREMENT,
 `userId` INTEGER UNSIGNED NOT NULL,
 `title` VARCHAR(30) NOT NULL,
-`finished` SMALLINT,
-`archived` SMALLINT,
+`flags`  SMALLINT UNSIGNED DEFAULT 0 NOT NULL,
+`finished` TIMESTAMP NULL,
 `added` TIMESTAMP,
 `updated` TIMESTAMP,
 PRIMARY KEY (`id`)
@@ -46,9 +46,9 @@ CREATE TABLE `t_task`
 `deadline` TIMESTAMP NULL,
 `lastStarted` INTEGER UNSIGNED DEFAULT NULL,
 `lastStopped` INTEGER UNSIGNED DEFAULT NULL,
-`flags` SMALLINT DEFAULT 0 NOT NULL,
 `duration` INTEGER UNSIGNED DEFAULT 0 NOT NULL,
 `title` VARCHAR(60) NOT NULL,
+`flags` SMALLINT UNSIGNED DEFAULT 0 NOT NULL,
 `scrap` VARCHAR(60) NOT NULL,
 `added` TIMESTAMP,
 `updated` TIMESTAMP,
@@ -58,6 +58,7 @@ PRIMARY KEY (`id`)
 CREATE TABLE `t_scrap`
 (
 `taskId` INTEGER UNSIGNED,
+`userId` INTEGER UNSIGNED NOT NULL,
 `longScrap` TEXT,
 `added` TIMESTAMP,
 `updated` TIMESTAMP,
@@ -75,3 +76,6 @@ CREATE INDEX `t_task_projectId_idxfk` ON `t_task`(`projectId`);
 ALTER TABLE `t_task` ADD FOREIGN KEY projectId_idxfk (`projectId`) REFERENCES `t_project` (`id`);
 
 ALTER TABLE `t_scrap` ADD FOREIGN KEY taskId_idxfk (`taskId`) REFERENCES `t_task` (`id`);
+
+CREATE INDEX `t_scrap_userId_idxfk` ON `t_scrap`(`userId`);
+ALTER TABLE `t_scrap` ADD FOREIGN KEY userId_idxfk_2 (`userId`) REFERENCES `t_user` (`id`);
