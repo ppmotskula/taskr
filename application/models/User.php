@@ -239,7 +239,7 @@ class Taskr_Model_User extends My_MagicAbstract
      */
     public function archiveFinishedTasks()
     {
-        Taskr_Model_DataMapper::getInstance()->tasksArchive($this->id);
+        Taskr_Model_DataMapper::getInstance()->archiveTasks($this);
     }
 
     /**

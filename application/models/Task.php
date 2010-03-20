@@ -15,13 +15,15 @@
  *      (each task must have zero or one projects)
  * @property string $title must not be NULL
  * @property string $scrap
+ * @property-read string scrapLine
+ *      for indication in task lists
  * @property int $liveline if set, must be an Unix timestamp
  * @property int $deadline if set, must be an Unix timestamp
  * @property int $added Unix timestamp of when the task was added
  * @property int $lastStarted Unix timestamp
  * @property int $lastStopped Unix timestamp
- * @property bool $finished
- * @property bool $archived
+ * @property-read bool $finished
+ * @property-read bool $archived
  * @property int $duration in seconds
  *
  * @property int $id internal database key
@@ -143,13 +145,18 @@ class Taskr_Model_Task extends My_MagicAbstract
          &&  strlen($this->_magicScrap) == Taskr_Model_DataMapper::SHORT_SCRAP_LIMIT )
         {
             // load he scrap from database HERE
-            $this->_magicScrap = Taskr_Model_DataMapper::getInstance()->scrapRead($this->id);
+            $this->_magicScrap = Taskr_Model_DataMapper::getInstance()->readScrap($this);
             $this->_scrapChanged = FALSE;
         }
         return $this->_magicScrap;
     }
     
-    public function setScrap( $newContent )
+    /**
+     * Mutator method for scrap property
+     *
+     * @param string $newContent
+     */
+    public function setScrap($newContent)
     {
         if ( $newContent != $this->_magicScrap ) {
             $this->_magicScrap = $newContent;
@@ -162,7 +169,7 @@ class Taskr_Model_Task extends My_MagicAbstract
      */
     public function getScrapLine()
     {
-        return $this->scrapLine();
+        return $this->makeScrapLine();
     }
 
     /**
@@ -254,7 +261,7 @@ class Taskr_Model_Task extends My_MagicAbstract
     public function getProject()
     {
         if ( $pid = $this->_magicProjectId ) {
-            return Taskr_Model_DataMapper::getInstance()->findProject( $pid );
+            return Taskr_Model_DataMapper::getInstance()->findProject($pid);
         }
         return NULL;
     }
@@ -270,14 +277,17 @@ class Taskr_Model_Task extends My_MagicAbstract
 
     /*
      * Show auxiliary scrap indication without control symbols.
+     *
      * Useful for brief indication e.g. in task list.
      * Parameter $outlen specifies overall width, including title and $separator.
      * If $separator is empty string, then $outlen limits scrap indication only.
      * In development mode shows task id before the scrap!
-     * @todo implement a permanent solution for UI task status indication
-     * @usedby views/scripts/task/index.phtml
+     * 
+     * @param int $outlen maximub lenght of string to be composed
+     * @param string $separator between the task title and scrap part
+     * @return indication string starting with $separator
      */
-    public function scrapLine($outlen = 80, $separator = ' - ')
+    public function makeScrapLine($outlen = 80, $separator = ' - ')
     {
     	$scrap = $result = ''; 
     	
