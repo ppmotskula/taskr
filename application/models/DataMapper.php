@@ -22,7 +22,23 @@
  */
 class Taskr_Model_DataMapper
 {
-    const SHORT_SCRAP_LIMIT = 60;       // width of Tasks.scrap field
+    /**
+     * @ignore (internal)
+     * for mapping out Taskr_Models_Task::finished property
+     */
+    const FINISH_FLAG   = 8;
+    
+    /**
+     * @ignore (internal)
+     * for mapping out Taskr_Models_Task::archived property
+     */
+    const ARCHIVE_FLAG  = 16;
+    
+    /**
+     * @ignore (internal)
+     * the magic limit until what the scrap is regarded a short one (residing fully in Task table)
+     */
+    const SHORT_SCRAP_LIMIT = 60;
 
     /**
      * @ignore (internal)
@@ -319,10 +335,37 @@ class Taskr_Model_DataMapper
     /****** SECTION: Task ******/
 
     /**
-     * Fetches the given user's active task from the database
+     * @ignore (internal)
+     * Map database fields into Task class properties
+     */
+    protected function _initTaskInstance(array $row)
+    {
+        $flags = $row['flags'];
+        unset($row['flags']);
+        $row['finished'] = (bool)($flags & self::FINISH_FLAG);
+        $row['archived'] = (bool)($flags & self::ARCHIVE_FLAG);
+        return new Taskr_Model_Task($row);
+    }
+    
+    /**
+     * @ignore (internal)
+     * Create a flag word keeping database model happy
+     */
+    protected function _mkTaskFlags(Taskr_Model_Task $task)
+    {
+        
+        $flags = $task->finished ? self::FINISH_FLAG : 0;
+        
+        if ($task->archived) {
+            $flags |= self::ARCHIVE_FLAG;
+        }
+        return $flags;
+    }
+
+    /**
+     * Fetches current user's active task from the database
      *
-     * @param Taskr_Model_User $user
-     * @return Taskr_Model_Task
+     * @return NULL|Taskr_Model_Task
      *      NULL if user not found or user has no active task
      */
     public function activeTask()
@@ -331,10 +374,8 @@ class Taskr_Model_DataMapper
         $res = $this->_execForRows($stmt);
 
         if ($res) {
-            $res = $res[0];
-            $res = new Taskr_Model_Task($res);
+            return $this->_initTaskInstance($res[0]);
         }
-        return $res;
     }
 
     /**
@@ -376,7 +417,7 @@ class Taskr_Model_DataMapper
                     $this->_scrapSave( NULL, $task->scrap );
                 }
                 $stmt = self::$_db->prepare('call SaveTask(?,?,?,?,?)');
-                $stmt->bindValue(++$i, $task->flags, PDO::PARAM_INT);
+                $stmt->bindValue(++$i, $this->_mkTaskFlags($task), PDO::PARAM_INT);
             } else {                // create new record
                 $stmt = self::$_db->prepare('call CreateTask(?,?,?,?,?)');
                 $stmt->bindValue(++$i, $task->title, PDO::PARAM_STR);
@@ -448,7 +489,7 @@ class Taskr_Model_DataMapper
         $stmt = self::$_db->prepare('call StopTask(?,?,?)');
         $stmt->bindValue(1, $task->id, PDO::PARAM_INT);
         $stmt->bindValue(2, $task->projectId, PDO::PARAM_INT);
-        $stmt->bindValue(3, $task->flags, PDO::PARAM_INT);
+        $stmt->bindValue(3, $this->_mkTaskFlags($task), PDO::PARAM_INT);
         $this->_execForResult($stmt);
     }
 
@@ -666,7 +707,7 @@ class Taskr_Model_DataMapper
         // construct return array
         $result = array();
         foreach ($rows as $row) {
-            array_push($result, new Taskr_Model_Task($row));
+            array_push($result, $this->_initTaskInstance($row));
         }
 
         return $result;
@@ -713,7 +754,7 @@ class Taskr_Model_DataMapper
 
         if ( $rows ) {
             foreach ($rows as $row) {
-                array_push($result, new Taskr_Model_Task($row));
+                array_push($result, $this->_initTaskInstance($row));
             }
         }
         return $result;

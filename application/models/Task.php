@@ -33,19 +33,6 @@
 class Taskr_Model_Task extends My_MagicAbstract
 {
     /**
-     * Constants used to define status scheme.
-     *
-     * Status scheme defines object behavior and in which context it can be used.
-     * Object appearance may be defined by different scheme.
-     *
-     * When these values are changed, data repository (mapper) should be modified accordingly.   
-     * For the sake of debugging, these values are human readable right now.
-     */
-
-    const FINISH_FLAG   = 8;            // used in _magicFlags
-    const ARCHIVE_FLAG  = 16;           // used in _magicFlags
-    
-    /**
      * @ignore (magic property)
      */
     protected $_magicId;
@@ -96,10 +83,14 @@ class Taskr_Model_Task extends My_MagicAbstract
     protected $_magicLastStopped;
 
     /**
-     * @ignore (internal property)
-     * Accessed by getFinished(), getArchived()
+     * @ignore (magic property)
      */
-    protected $_magicFlags = 0;
+    protected $_magicFinished;
+
+    /**
+     * @ignore (magic property)
+     */
+    protected $_magicArchived;
 
     /**
      * @ignore (magic property)
@@ -109,16 +100,26 @@ class Taskr_Model_Task extends My_MagicAbstract
     /**
      * @ignore (internal)
      */
-    protected $_scrapChanged = FALSE;   // necessary for avoiding senseless db traffic
+    protected $_scrapChanged;           // necessary for avoiding senseless db traffic
     
     /**
      * @ignore (internal)
      */
     protected $_user;                   // user instance so we won't access db redundantly
 
-
+    /**
+     * Initiate a Task instance
+     */
     public function __construct(array $magic = NULL)
     {
+        if (array_key_exists('finished', $magic)) {     // Workaround for initializing
+            $this->_magicFinished = $magic['finished']; // the read-only property
+            unset($magic['finished']);
+        }
+        if (array_key_exists('archived', $magic)) {
+            $this->_magicArchived = $magic['archived'];
+            unset($magic['archived']);
+        }
         parent::__construct( $magic );
         $this->_scrapChanged = FALSE;
     }
@@ -173,19 +174,21 @@ class Taskr_Model_Task extends My_MagicAbstract
     }
 
     /**
-     * @property-read boolean finished
+     * @ignore
+     * @throw Exception Trying to set a read-only property
      */
-    public function getFinished()
+    public function setFinished()
     {
-        return ($this->_magicFlags & self::FINISH_FLAG) == self::FINISH_FLAG;
+        throw new Exception('Trying to set a read-only property');
     }
     
     /**
-     * @property-read boolean archived
+     * @ignore
+     * @throw Exception Trying to set a read-only property
      */
-     public function getArchived()
+    public function setArchived()
     {
-        return ($this->_magicFlags & self::ARCHIVE_FLAG) == self::ARCHIVE_FLAG;
+        throw new Exception('Trying to set a read-only property');
     }
     
     /**

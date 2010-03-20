@@ -42,11 +42,6 @@ class Taskr_Model_Project extends My_MagicAbstract
     /**
      * @ignore (magic property)
      */
-    protected $_magicFlags;
-
-    /**
-     * @ignore (magic property)
-     */
     protected $_magicAdded;
 
     /**

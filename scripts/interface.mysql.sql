@@ -497,10 +497,10 @@ as select
  * All projects of the current user
  */
 CREATE VIEW ProjectsV (
-		id, userId, title, flags, finished, added
+		id, userId, title, finished, added
 )
 as select
-		id, userId, title, flags,
+		id, userId, title,
 		unix_timestamp(finished),
 		unix_timestamp(added)
 	from	Projects
