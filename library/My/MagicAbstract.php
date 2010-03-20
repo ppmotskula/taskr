@@ -189,8 +189,7 @@ abstract class My_MagicAbstract
         $result = array();
         $properties = get_object_vars($this);
 
-        if ( property_exists($this, '_magic')
-          && is_array($this->_magic) ) {
+        if (property_exists($this, '_magic') && is_array($this->_magic)) {
             foreach ($this->_magic as $key => $value) {
                 $result[$key] = $value;
             }
