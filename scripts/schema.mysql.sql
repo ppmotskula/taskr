@@ -3,13 +3,13 @@
  */
 -- DO NOT alter the lines above!!!
 
-DROP TABLE IF EXISTS `t_scrap`;
-DROP TABLE IF EXISTS `t_task`;
-DROP TABLE IF EXISTS `t_project`;
-DROP TABLE IF EXISTS `t_user`;
+DROP TABLE IF EXISTS `Scraps`;
+DROP TABLE IF EXISTS `Tasks`;
+DROP TABLE IF EXISTS `Projects`;
+DROP TABLE IF EXISTS `Users`;
 
 
-CREATE TABLE `t_user`
+CREATE TABLE `Users`
 (
 `id` INTEGER UNSIGNED AUTO_INCREMENT,
 `username` VARCHAR(30) NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE `t_user`
 PRIMARY KEY (`id`)
 );
 
-CREATE TABLE `t_project`
+CREATE TABLE `Projects`
 (
 `id` INTEGER UNSIGNED AUTO_INCREMENT,
 `userId` INTEGER UNSIGNED NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE `t_project`
 PRIMARY KEY (`id`)
 );
 
-CREATE TABLE `t_task`
+CREATE TABLE `Tasks`
 (
 `id` INTEGER UNSIGNED AUTO_INCREMENT,
 `userId` INTEGER UNSIGNED NOT NULL,
@@ -55,7 +55,7 @@ CREATE TABLE `t_task`
 PRIMARY KEY (`id`)
 );
 
-CREATE TABLE `t_scrap`
+CREATE TABLE `Scraps`
 (
 `taskId` INTEGER UNSIGNED,
 `userId` INTEGER UNSIGNED NOT NULL,
@@ -65,17 +65,17 @@ CREATE TABLE `t_scrap`
 PRIMARY KEY (`taskId`)
 );
 
-CREATE INDEX `t_user_username_idx` ON `t_user`(`username`);
-CREATE INDEX `t_project_userId_idxfk` ON `t_project`(`userId`);
-ALTER TABLE `t_project` ADD FOREIGN KEY userId_idxfk (`userId`) REFERENCES `t_user` (`id`);
+CREATE INDEX `Users_username_idx` ON `Users`(`username`);
+CREATE INDEX `Projects_userId_idxfk` ON `Projects`(`userId`);
+ALTER TABLE `Projects` ADD FOREIGN KEY userId_idxfk (`userId`) REFERENCES `Users` (`id`);
 
-CREATE INDEX `t_task_userId_idxfk` ON `t_task`(`userId`);
-ALTER TABLE `t_task` ADD FOREIGN KEY userId_idxfk_1 (`userId`) REFERENCES `t_user` (`id`);
+CREATE INDEX `Tasks_userId_idxfk` ON `Tasks`(`userId`);
+ALTER TABLE `Tasks` ADD FOREIGN KEY userId_idxfk_1 (`userId`) REFERENCES `Users` (`id`);
 
-CREATE INDEX `t_task_projectId_idxfk` ON `t_task`(`projectId`);
-ALTER TABLE `t_task` ADD FOREIGN KEY projectId_idxfk (`projectId`) REFERENCES `t_project` (`id`);
+CREATE INDEX `Tasks_projectId_idxfk` ON `Tasks`(`projectId`);
+ALTER TABLE `Tasks` ADD FOREIGN KEY projectId_idxfk (`projectId`) REFERENCES `Projects` (`id`);
 
-ALTER TABLE `t_scrap` ADD FOREIGN KEY taskId_idxfk (`taskId`) REFERENCES `t_task` (`id`);
+ALTER TABLE `Scraps` ADD FOREIGN KEY taskId_idxfk (`taskId`) REFERENCES `Tasks` (`id`);
 
-CREATE INDEX `t_scrap_userId_idxfk` ON `t_scrap`(`userId`);
-ALTER TABLE `t_scrap` ADD FOREIGN KEY userId_idxfk_2 (`userId`) REFERENCES `t_user` (`id`);
+CREATE INDEX `Scraps_userId_idxfk` ON `Scraps`(`userId`);
+ALTER TABLE `Scraps` ADD FOREIGN KEY userId_idxfk_2 (`userId`) REFERENCES `Users` (`id`);

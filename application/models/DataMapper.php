@@ -1,7 +1,8 @@
 <?php
 /**
  * @package Taskr
- * @author Peeter P. Mõtsküla <ppm@taskr.eu>
+ * @author Peeter P. Mõtsküla <ppm@taskr.eu> (initial version for sqlite database)
+ * @author Villem Alango <valango@gmai.com>  (current version for MySQL database)
  * @todo copyright & license
  * @version 0.1.0
  *
@@ -21,7 +22,7 @@
  */
 class Taskr_Model_DataMapper
 {
-    const SHORT_SCRAP_LIMIT = 60;       // width of t_task.scrap field
+    const SHORT_SCRAP_LIMIT = 60;       // width of Tasks.scrap field
 
     /**
      * @ignore (internal)
@@ -93,23 +94,24 @@ class Taskr_Model_DataMapper
     }
 
     /**
-     * Execute prepared statement and ceheck for results
+     * Execute prepared statement and check for results.
+     *
      * Fetch error message or array of (possible) results
-     * @return array | string
+     * @return array|string
      */
     protected function _execForResult($stmt, $noExceptions = FALSE)
     {
         $stmt->execute();             // excute the prepared stuff
         $stmt->closeCursor();
 
-        $stmt = self::$_db->prepare('SELECT @error, @res1, @res1');
+        $stmt = self::$_db->prepare('SELECT @error, @res1');
         $stmt->execute();
         $data = $stmt->fetch();
         $stmt->closeCursor();
         $result = $data['@error'];
 
         if ( NULL === $result ) {
-            $result = array( $data['@res1'], $data['@res2'] );
+            $result = array( $data['@res1'] );
         } elseif ( !$noExceptions ) {
             throw new exception($result);
         }
@@ -140,7 +142,7 @@ class Taskr_Model_DataMapper
      */
     public function initWorkContext( $userId )
     {
-        $stmt = self::$_db->prepare('call p_user_connect(?)');
+        $stmt = self::$_db->prepare('call SetUserContext(?)');
         $stmt->bindValue(1, $userId, PDO::PARAM_INT);
         $this->_execForResult($stmt);
     }
@@ -182,11 +184,11 @@ class Taskr_Model_DataMapper
     {
         if ( $obj->id ) {      // just save changes
             $requireKey = FALSE;
-            $stmt = self::$_db->prepare('call p_user_save(?,?,?,?,?)');
+            $stmt = self::$_db->prepare('call SaveUser(?,?,?,?,?)');
             $stmt->bindValue(1, $obj->id, PDO::PARAM_INT);
         } else {                // create new user
             $requireKey = TRUE;
-            $stmt = self::$_db->prepare('call p_user_create(?,?,?,?)');
+            $stmt = self::$_db->prepare('call CreateUser(?,?,?,?)');
             $stmt->bindValue(1, $obj->username, PDO::PARAM_STR);
         }
         $stmt->bindValue(2, $obj->password, PDO::PARAM_STR);
@@ -213,7 +215,7 @@ class Taskr_Model_DataMapper
             'SELECT id, username, password, email, emailTmp, tzDiff, credits' .
             ', unix_timestamp(proUntil) as proUntil' .
             ', unix_timestamp(added) as added' .
-            ' FROM t_user WHERE id = ?' );
+            ' FROM Users WHERE id = ?' );
         $stmt->bindValue(1, $userId, PDO::PARAM_INT);
 
         if ( $data = $this->_execForRows($stmt) ) {
@@ -247,7 +249,7 @@ class Taskr_Model_DataMapper
     	        self::_initRmoManager();
     	    }
 
-            $stmt = self::$_db->prepare('call pv_user_byname(?)');
+            $stmt = self::$_db->prepare('call GetUserByName(?)');
             $stmt->bindValue(1, $userName, PDO::PARAM_STR);
 
             if ( $data = $this->_execForRows($stmt) ) {
@@ -268,7 +270,7 @@ class Taskr_Model_DataMapper
         $stmt = self::$_db->prepare(
             'SELECT id, username, password, email, emailTmp' .
             ', tzDiff, activeTask, proUntil, credits, added' .
-            ' FROM t_user WHERE email = ? AND ' .
+            ' FROM Users WHERE email = ? AND ' .
             '(proUntil is NULL OR proUntil > now())' );
         $stmt->bindValue(1, $email, PDO::PARAM_STR);
 
@@ -287,10 +289,10 @@ class Taskr_Model_DataMapper
     public function deleteUser(Taskr_Model_User $user)
     {
         self::$_db->beginTransaction();
-        self::$_db->delete('t_scrap', "userId = {$user->id}");
-        self::$_db->delete('t_task', "userId = {$user->id}");
-        self::$_db->delete('t_project', "userId = {$user->id}");
-        self::$_db->delete('t_user', "id = {$user->id}");
+        self::$_db->delete('Scraps', "userId = {$user->id}");
+        self::$_db->delete('Tasks', "userId = {$user->id}");
+        self::$_db->delete('Projects', "userId = {$user->id}");
+        self::$_db->delete('Users', "id = {$user->id}");
         self::$_db->commit();
     }
 
@@ -305,7 +307,7 @@ class Taskr_Model_DataMapper
      */
     public function activeTask()
     {
-        $stmt = self::$_db->prepare('call pv_activetask()');
+        $stmt = self::$_db->prepare('call GetActiveTask()');
         $res = $this->_execForRows($stmt);
 
         if ($res) {
@@ -317,7 +319,7 @@ class Taskr_Model_DataMapper
 
     protected function _scrapSave( $taskId, $scrap )
     {
-        $stmt = self::$_db->prepare('call p_scrap_save(?,?)');
+        $stmt = self::$_db->prepare('call SaveScrap(?,?)');
         $stmt->bindValue(1, $taskId, PDO::PARAM_INT);
         $stmt->bindValue(2, $scrap, PDO::PARAM_LOB);
         $this->_execForResult($stmt);
@@ -347,10 +349,10 @@ class Taskr_Model_DataMapper
                 if ( $inTransaction ) {
                     $this->_scrapSave( NULL, $obj->scrap );
                 }
-                $stmt = self::$_db->prepare('call p_task_save(?,?,?,?,?)');
+                $stmt = self::$_db->prepare('call SaveTask(?,?,?,?,?)');
                 $stmt->bindValue(++$i, $obj->flags, PDO::PARAM_INT);
             } else {                // create new record
-                $stmt = self::$_db->prepare('call p_task_create(?,?,?,?,?)');
+                $stmt = self::$_db->prepare('call CreateTask(?,?,?,?,?)');
                 $stmt->bindValue(++$i, $obj->title, PDO::PARAM_STR);
                 $requireKey = TRUE;
             }
@@ -389,7 +391,7 @@ class Taskr_Model_DataMapper
      */
     public function scrapRead( $taskId )
     {
-        $stmt = self::$_db->prepare('select longScrap from t_scrap where taskId = ?');
+        $stmt = self::$_db->prepare('select longScrap from Scraps where taskId = ?');
         $stmt->bindValue(1, $taskId, PDO::PARAM_INT);
         if ( $data = $this->_execForRows($stmt) ) {
             $data = $data[0]['longScrap'];
@@ -403,7 +405,7 @@ class Taskr_Model_DataMapper
      */
     public function startTask( $id )
     {
-        $stmt = self::$_db->prepare('call p_task_start(?)');
+        $stmt = self::$_db->prepare('call StartTask(?)');
         $stmt->bindValue(1, $id, PDO::PARAM_INT);
         $this->_execForResult($stmt);
     }
@@ -415,7 +417,7 @@ class Taskr_Model_DataMapper
      */
     public function stopTask( $obj )
     {
-        $stmt = self::$_db->prepare('call p_task_stop(?,?,?)');
+        $stmt = self::$_db->prepare('call StopTask(?,?,?)');
         $stmt->bindValue(1, $obj->id, PDO::PARAM_INT);
         $stmt->bindValue(2, $obj->projectId, PDO::PARAM_INT);
         $stmt->bindValue(3, $obj->flags, PDO::PARAM_INT);
@@ -425,7 +427,7 @@ class Taskr_Model_DataMapper
     public function tasksArchive( $userId )
     {
         $stmt = self::$_db->prepare(
-            'update t_task set flags = flags | 16 where userId = ? and flags < 16');
+            'update Tasks set flags = flags | 16 where userId = ? and flags < 16');
         $stmt->bindValue(1, $userId, PDO::PARAM_INT);
         $this->_execForResult($stmt);
     }
@@ -457,7 +459,7 @@ class Taskr_Model_DataMapper
      */
     public function findProject($id)
     {
-        $sql = 'SELECT * FROM v_projects WHERE id = ?';
+        $sql = 'SELECT * FROM ProjectsV WHERE id = ?';
 
         if ($res = self::$_db->fetchRow($sql, $id)) {
             $res = new Taskr_Model_Project($res);
@@ -473,7 +475,7 @@ class Taskr_Model_DataMapper
      */
     public function projectDuration(Taskr_Model_Project $project)
     {
-        $sql = 'SELECT SUM(duration) FROM t_task WHERE projectId = ?';
+        $sql = 'SELECT SUM(duration) FROM Tasks WHERE projectId = ?';
         $result = self::$_db->fetchOne($sql, $project->id);
 
         return $result;
@@ -499,7 +501,7 @@ class Taskr_Model_DataMapper
             throw new Exception('Cannot save project repeatedly');
         }
 
-        $stmt = self::$_db->prepare('call p_proj_create(?,?)');
+        $stmt = self::$_db->prepare('call CreateProject(?,?)');
 
         $stmt->bindValue(++$i, $project->userId, PDO::PARAM_INT);
         $stmt->bindValue(++$i, $project->title, PDO::PARAM_STR);
@@ -530,14 +532,14 @@ class Taskr_Model_DataMapper
         }
 
         // count unfinished tasks in the same project
-        $sql = 'SELECT COUNT(*) from t_task' .
+        $sql = 'SELECT COUNT(*) from Tasks' .
             ' WHERE projectId = ? AND flags < 8';
         $result = self::$_db->fetchOne($sql, $task->projectId);
 
         if (1 == $result) {
             // this is the last unfinished task of this project,
             // so let's finish the project too
-            $stmt = self::$_db->prepare('call p_proj_finish(?)');
+            $stmt = self::$_db->prepare('call FinishProject(?)');
             $stmt->bindValue(1, $task->projectId, PDO::PARAM_INT);
             $this->_execForResult($stmt);
             $task->project->finished = $task->lastStopped;
@@ -571,7 +573,7 @@ class Taskr_Model_DataMapper
     public function archivedProjects(Taskr_Model_User $user, $fromTs, $toTs)
     {
         $params[':userId'] = $user->id;
-        $sql = 'SELECT * FROM v_projects' .
+        $sql = 'SELECT * FROM ProjectsV' .
             ' WHERE userId = :userId';
 
         if (isset($fromTs)) {
@@ -614,7 +616,7 @@ class Taskr_Model_DataMapper
     public function archivedTasks(Taskr_Model_User $user, $fromTs, $toTs)
     {
         $params[':userId'] = $user->id;
-        $sql = 'SELECT * FROM v_tasks_arch' .
+        $sql = 'SELECT * FROM ArchievedTasksV' .
             ' WHERE userId = :userId';
         if (isset($fromTs)) {
             $params[':fromTs'] = $fromTs;
@@ -648,7 +650,7 @@ class Taskr_Model_DataMapper
      */
     public function unfinishedProjects(Taskr_Model_User $user)
     {
-        $sql = 'SELECT * FROM v_projects' .
+        $sql = 'SELECT * FROM ProjectsV' .
             ' WHERE userId = ? AND finished IS NULL' .
             ' ORDER BY title ASC';
         $rows = self::$_db->fetchAll($sql, $user->id);
@@ -670,7 +672,7 @@ class Taskr_Model_DataMapper
     protected function _loadTasks(array $which, $parms)
     {
         $result = array(); $k = array_shift($which);
-        $stmt = self::$_db->prepare('call pv_tasks(?,?)');
+        $stmt = self::$_db->prepare('call ReadTasks(?,?)');
         $stmt->bindValue(1, substr($k,0,3), PDO::PARAM_STR);
         $stmt->bindValue(2, $parms, PDO::PARAM_INT);
         $rows = $this->_execForRows($stmt);

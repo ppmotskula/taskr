@@ -7,67 +7,69 @@
  * @version 0.1.0
  */
 
-drop procedure if exists `p_user_create`;   -- create new user
-drop procedure if exists `p_user_save`;     -- save user data changes
-drop procedure if exists `p_user_connect`;  -- set up user environment
-drop procedure if exists `pv_user_byname`;  -- fetch user record
-drop procedure if exists `p_task_create`;
-drop procedure if exists `p_task_save`;
-drop procedure if exists `p_scrap_save`;
-drop procedure if exists `p_task_stop`;
-drop procedure if exists `p_task_start`;
-drop procedure if exists `pv_tasks`;
-drop procedure if exists `pv_activetask`;
-drop procedure if exists `p_proj_create`;
-drop procedure if exists `p_proj_finish`;
-drop procedure if exists `p_myexception`;
+DROP PROCEDURE IF EXISTS `CreateUser`;   	-- CREATE new user
+DROP PROCEDURE IF EXISTS `SaveUser`;     	-- save user data changes
+DROP PROCEDURE IF EXISTS `SetUserContext`;  -- set up user environment
+DROP PROCEDURE IF EXISTS `GetUserByName`;  	-- fetch user record
+DROP PROCEDURE IF EXISTS `CreateTask`;
+DROP PROCEDURE IF EXISTS `SaveTask`;
+DROP PROCEDURE IF EXISTS `SaveScrap`;
+DROP PROCEDURE IF EXISTS `StopTask`;
+DROP PROCEDURE IF EXISTS `StartTask`;
+DROP PROCEDURE IF EXISTS `ReadTasks`;
+DROP PROCEDURE IF EXISTS `GetActiveTask`;
+DROP PROCEDURE IF EXISTS `CreateProject`;
+DROP PROCEDURE IF EXISTS `FinishProject`;
+DROP PROCEDURE IF EXISTS `riseError`;
 
-drop function  if exists `f_user_id`;
+DROP FUNCTION  IF EXISTS `getUserId`;
 
-drop view      if exists `v_tasks_arch`;
-drop view      if exists `v_tasks_fini`;
-drop view      if exists `v_projects`;
+DROP VIEW      IF EXISTS `ArchievedTasksV`;
+DROP VIEW      IF EXISTS `FinishedTasksV`;
+DROP VIEW      IF EXISTS `ProjectsV`;
 
-delimiter //
+DELIMITER //
 
 /**
  * Generate exception.
  * @param string errmessage
  * @access internal
  */
-create procedure p_myexception (
+CREATE PROCEDURE riseError (
     errmessage varchar(255)
 )  
-begin
+BEGIN
     declare specialty condition for SQLSTATE '45100';
     
     set @error = errmessage;
     /* NB: the following line is OK only for MySQL 5.5 and above */
     -- signal specialty set message_text = errmessage;
     
-end //
+END //
 
 /**
  * Set up user environment.
- * This must be the 1st call during the connection from authenticated user.
+ * This must be the 1st CALL during the connection from authenticated user.
+ * Variables "@res..." are used as workaround for MySQL bug #27362
+ *
  * @param int userId
  */
-create procedure p_user_connect
+CREATE PROCEDURE SetUserContext
 (
     userId integer unsigned
   )
-begin
+BEGIN
 	set @error = 'record not found';
 
     select id, activeTask, UNIX_TIMESTAMP(), NULL, NULL, NULL
       into @taskr_user, @taskr_task, @taskr_connected, @error, @res1, @res2
-      from t_user where id = userId;
-end //
+      from Users where id = userId;
+END //
 
 /**
  * Create new user record
  */
-create procedure p_user_create
+CREATE PROCEDURE CreateUser
 (
   /* INOUT -- due to bug #27362: "OUT or INOUT argument is not a variable or..."
      we have to rely on odd-ball solution here via session variable @res1  */	
@@ -76,14 +78,14 @@ create procedure p_user_create
 		tz		smallint,
 		mailTmp	varchar(30)
 	)
-begin
+BEGIN
 	set @res1 = NULL, @error = NULL;
 	
     select sql_no_cache 'User with the same name exists' into @error
-    	from t_user where username = uname limit 1;
+    	from Users where username = uname limit 1;
     
-    if @error is NULL then
-		insert into t_user (
+    IF @error is NULL THEN
+		insert into Users (
 			username, password, emailTmp, tzDiff, 
 			added, updated
 		) values (
@@ -94,14 +96,14 @@ begin
   		
     	set @taskr_user = @res1, @taskr_task = NULL, 
     		@taskr_connected = UNIX_TIMESTAMP();
-  	end if;
-end //
+  	END IF;
+END //
 
 
 /**
  * Save user data changes
  */
-create procedure p_user_save
+CREATE PROCEDURE SaveUser
 (
 		uid		integer unsigned,
 		pwd		varchar(255),
@@ -109,67 +111,67 @@ create procedure p_user_save
 		mailTmp varchar(30),
 		mail	varchar(30)
 	)
-begin
-	update t_user
+BEGIN
+	update Users
 		set password = pwd, email = mail, emailTmp = mailTmp, tzDiff = tz,
 			updated = NULL
 		where id = uid;
 		
 	set @res1 = NULL, @error = NULL, @i = 1;  -- row_count(); unexplained "-1"
 
-	if @i <= 0 then
-	     set @error = concat( 't_user update failed:', conv(@i,10,-10));
-	end if;
-end //
+	IF @i <= 0 THEN
+	     set @error = concat( 'Users update failed:', conv(@i,10,-10));
+	END IF;
+END //
 
 
 /**
  * retrieve user by name
  */
-create procedure pv_user_byname
+CREATE PROCEDURE GetUserByName
 (
     uname varchar(30)
   )
-begin
+BEGIN
     select	sql_no_cache
     	id, username, password, email, emailTmp, tzDiff,
     	/* activeTask, */ 
     	unix_timestamp(proUntil) as proUntil, credits, 
     	unix_timestamp(added) as added
-     from t_user where username = uname;
-end //
+     from Users where username = uname;
+END //
 
 /**
  * Fetch active task
  */
-create procedure pv_activetask
+CREATE PROCEDURE GetActiveTask
 ( )
-begin
+BEGIN
     select
         id, userId, projectId, title, duration,
         unix_timestamp(liveline) as liveline,
         unix_timestamp(deadline) as deadline,
         flags, added, lastStarted, lastStopped, scrap
-      from t_task
+      from Tasks
       where userId = @taskr_user and id = @taskr_task;    
-end //
+END //
 
 /**
  * @todo inline documenting
  */
-create function f_user_id() returns integer unsigned
-begin
-    if @taskr_user is NULL then
-        call p_myexception('f_user_id: user context not set');
-        return NULL;
-    end if;
-    return @taskr_user;
-end //
+CREATE FUNCTION getUserId() returns integer unsigned
+BEGIN
+    IF @taskr_user is NULL THEN
+        CALL riseError('getUserId: user context not set');
+        RETURN NULL;
+    END IF;
+    RETURN @taskr_user;
+END //
 
 /**
  * @todo inline documenting
  */
-create procedure p_task_create		-- Create a new task record
+CREATE PROCEDURE CreateTask		-- Create a new task record
 (
   /* INOUT -- due to bug #27362: "OUT or INOUT argument is not a variable or..."
      we have to rely on odd-ball solution here via session variable @res1  */	
@@ -179,9 +181,9 @@ create procedure p_task_create		-- Create a new task record
 		deadlin	integer unsigned,
 		scrap	varchar(60)
 	)
-begin
+BEGIN
 	set @error = NULL;
-  	insert into t_task (
+  	insert into Tasks (
 		userId, projectId, title, scrap, 
 		liveline, deadline, 
 		added, updated
@@ -192,12 +194,12 @@ begin
 		NULL, NULL	           			-- force CURRENT_TIMESTAMP
 	);
   	set @res1 := LAST_INSERT_ID();	-- anal tooth brushing (for bug #27362)
-end //
+END //
 	
 /**
  * @todo inline documenting
  */
-create procedure p_task_save		-- Save task after editing
+CREATE PROCEDURE SaveTask		-- Save task after editing
 (
 		status  smallint,
 		proj_id	integer unsigned,
@@ -205,225 +207,217 @@ create procedure p_task_save		-- Save task after editing
 		deadlin	integer unsigned,
 		s_scrap	varchar(60)
    )
-begin
+BEGIN
 	declare bExists integer default 0;
 	
-	if @taskr_task is NULL then
-        call p_myexception('p_task_save: no task active');
-    else
+	IF @taskr_task is NULL THEN
+        CALL riseError('SaveTask: no task active');
+    ELSE
         set @error = NULL, s_scrap = ifnull(s_scrap,'');
         
-		if length(s_scrap) < 60 then
-			select taskId into bExists from t_scrap where taskId = @taskr_task;
+		IF length(s_scrap) < 60 THEN
+			select taskId into bExists from Scraps where taskId = @taskr_task;
 			
-			if bExists then
-				delete from t_scrap where taskId = @taskr_task;
-			end if;
-		end if;
+			IF bExists THEN
+				delete from Scraps where taskId = @taskr_task;
+			END IF;
+		END IF;
 		
-        update t_task
+        update Tasks
           set	liveline = FROM_UNIXTIME(livelin), projectId = proj_id, 
         		deadline = FROM_UNIXTIME(deadlin), scrap = s_scrap,
         		flags = status, updated = NULL
           where id = @taskr_task;
           
-		if ROW_COUNT() <= 0 then
-	    	call p_myexception('p_task_save: no tasks updated');
-	    else
+		IF ROW_COUNT() <= 0 THEN
+	    	CALL riseError('SaveTask: no tasks updated');
+	    ELSE
 	    	set @res1 = @taskr_task;
-        end if;
-    end if;
+        END IF;
+    END IF;
 
-end //
+END //
 
 /**
  * Save or update long scrap.
- * NB: p_task_save() should be called immediately after this
+ * NB: SaveTask() should be called immediately after this
  */
-create procedure p_scrap_save
+CREATE PROCEDURE SaveScrap
 (
 	task_id		integer unsigned,	-- use non-NULL only upon task creation!
 	long_scrap	text
 	)
-begin
+BEGIN
 	declare mylen integer default NULL;
 
-	if task_id is NULL and @taskr_task is NULL then
-        call p_myexception('p_task_save: no task active');
-    else
+	IF task_id is NULL and @taskr_task is NULL THEN
+        CALL riseError('SaveTask: no task active');
+    ELSE
         set @error = NULL;
         
-        if task_id is NULL then
-        	select length( scrap ), id into mylen, task_id from t_task where id = @taskr_task;
-       	else
+        IF task_id is NULL THEN
+        	select length( scrap ), id into mylen, task_id from Tasks where id = @taskr_task;
+       	ELSE
        		set mylen = 0;
-        end if;
+        END IF;
         
-        if task_id is NULL then  -- if mylen is NULL then
-        	call p_myexception('p_scrap_save: could not read task record');
-        else
-			if mylen < 60 then					-- we made a long scrap from short one
-				insert into t_scrap ( taskId, userId, longScrap, added, updated )
+        IF task_id is NULL THEN  -- IF mylen is NULL THEN
+        	CALL riseError('SaveScrap: could not read task record');
+        ELSE
+			IF mylen < 60 THEN					-- we made a long scrap from short one
+				insert into Scraps ( taskId, userId, longScrap, added, updated )
 					values ( task_id, @taskr_user, long_scrap, NULL, NULL );
-			else
-				update t_scrap set longScrap = long_scrap, updated = NULL
+			ELSE
+				update Scraps set longScrap = long_scrap, updated = NULL
 					where taskId = @taskr_task;
-			end if;
+			END IF;
 			
-			if ROW_COUNT() <= 0 then
-				call p_myexception('p_scrap_save: operation failed');
-			end if;
-        end if;
-	end if;
-end //
+			IF ROW_COUNT() <= 0 THEN
+				CALL riseError('SaveScrap: operation failed');
+			END IF;
+        END IF;
+	END IF;
+END //
 
 /**	
  * Stop the task task.
- * Set @res1 to Unix timestamp of when this happened.
- * If this was he last unfinshed task of a project, finish the project and set @res2 to project id.
- * @todo checks, transaction, documenting
+ * Set @res1 to Unix timestamp of WHEN this happened.
+ * If this was he last unfinshed task of a project, 
+ * finish the project and set @res2 to project id.
  */
-create procedure p_task_stop
+CREATE PROCEDURE StopTask
 (
   		task_id	integer unsigned,
   		proj_id integer unsigned,
   		status	smallint
 	)
-begin
+BEGIN
     declare t int unsigned DEFAULT unix_timestamp();
 	declare n int unsigned default NULL;
     
 	set @res1 = NULL, @res2 = NULL, @error = NULL;
 	
-    if @taskr_nohaste is NULL then
-    	update t_user set activeTask = NULL
+    IF @taskr_nohaste is NULL THEN
+    	update Users set activeTask = NULL
     	  where id = @taskr_user and activeTask = task_id;
     	  
-    	if proj_id is not NULL and (status & 8) then
-    		select count(*) into n from t_task
+    	IF proj_id is not NULL and (status & 8) THEN
+    		select count(*) into n from Tasks
     			where projectId = proj_id and flags < 8;
     			
-    		if n = 1 then
-    			start transaction;
+    		IF n = 1 THEN
+    			START TRANSACTION;
     			
-    			update t_project set flags = status, finished = from_unixtime(t)
+    			update Projects set flags = status, finished = from_unixtime(t)
     				where id = proj_id;
     				
     			set @res2 = proj_id;
-    		end if;
-    	end if;
-    end if;
+    		END IF;
+    	END IF;
+    END IF;
     
-	update t_task
+	update Tasks
 	  set lastStopped = t, duration = duration + (t - lastStarted),
 	      flags = status, updated = NULL
 	    where id = task_id and userId = @taskr_user and lastStarted > lastStopped;
 	    
-	if ROW_COUNT() <= 0 then
-		if n = 1 then rollback; end if;
-		call p_myexception('p_task_stop: no tasks updated');
-	else if n = 1 then commit; end if;
+	IF ROW_COUNT() <= 0 THEN
+		IF n = 1 THEN ROLLBACK; END IF;
+		CALL riseError('StopTask: no tasks updated');
+	ELSE IF n = 1 THEN COMMIT; END IF;
 		set @res1 = t, @error = NULL;
-	end if;
-end //
-
-/**
- * Search content (headers and scraps)
- */
-create procedure searchContent (
-)
-begin
-end //
+	END IF;
+END //
 
 /**	
- * Start a new task, stopping the old one if necessary.
- * @return unix_timestamp in @res1
+ * Start a new task, stopping the old one IF necessary.
+ * @RETURN unix_timestamp in @res1
  * @todo checks, documenting
  */
-create procedure p_task_start
+CREATE PROCEDURE StartTask
 (
   		task_id	integer unsigned
 	)
-begin
+BEGIN
 	declare othertask integer unsigned;
 	declare otherproj integer unsigned;
 	
-	select sql_no_cache activeTask into othertask from t_user where id = @taskr_user;
+	select sql_no_cache activeTask into othertask from Users where id = @taskr_user;
 	
-	if othertask is not NULL then
-		set @taskr_nohaste = ifnull(@taskr_nohaste,'p_task_start');
-		select sql_no_cache projectId into otherproj from t_task where id = othertask;
-		call p_task_stop( othertask, otherproj, 0 );
-	else
+	IF othertask is not NULL THEN
+		set @taskr_nohaste = ifnull(@taskr_nohaste,'StartTask');
+		select sql_no_cache projectId into otherproj from Tasks where id = othertask;
+		CALL StopTask( othertask, otherproj, 0 );
+	ELSE
 		set @res1 = UNIX_TIMESTAMP(), @error = NULL;
-	end if;
+	END IF;
 
-    update t_user set activeTask = task_id
+    update Users set activeTask = task_id
     	where id = @taskr_user;
     
-	update t_task
+	update Tasks
 	  set lastStarted = @res1, lastStopped = 0, updated = NULL
 	    where id = task_id and userId = @taskr_user;
 
-	if ROW_COUNT() <= 0  then
-	    call p_myexception('p_task_start: no tasks updated');
-	else
+	IF ROW_COUNT() <= 0  THEN
+	    CALL riseError('StartTask: no tasks updated');
+	ELSE
 		set @taskr_task = task_id;
-	end if;
-	if @taskr_nohaste = 'p_task_start' then set @taskr_nohaste = NULL; end if;
+	END IF;
+	IF @taskr_nohaste = 'StartTask' THEN set @taskr_nohaste = NULL; END IF;
 	
-end //
+END //
 
 /**
  * @todo inline documenting
  */
-create procedure pv_tasks 
+CREATE PROCEDURE ReadTasks 
 (
     what    char(3),    -- liv, act, fut, tod, ove, fin, arc
     project integer unsigned
 )
-begin
+BEGIN
     declare bdone tinyint default 0;
     declare vdone tinyint default FALSE;
     declare varch tinyint default FALSE;
     declare t_horiz datetime default date_add(now(), interval 1 day);
     declare today datetime default Day(Now());
 
-    if @taskr_user is NULL then
-        call p_myexception("pv_tasks(): user context is missing");
+    IF @taskr_user is NULL THEN
+        CALL riseError("ReadTasks(): user context is missing");
         set bdone = TRUE;
-    else
+    ELSE
     	set @error = NULL;
    	
-		case what
-		when 'act' then set varch = FALSE;
-		when 'fut' then set varch = FALSE;
-		when 'tod' then set varch = FALSE;
-		when 'ove' then set varch = FALSE;
-		when 'liv' then set varch = FALSE;
-		when 'fin' then
-			select * from v_tasks_fini;
+		CASE what
+		WHEN 'act' THEN set varch = FALSE;
+		WHEN 'fut' THEN set varch = FALSE;
+		WHEN 'tod' THEN set varch = FALSE;
+		WHEN 'ove' THEN set varch = FALSE;
+		WHEN 'liv' THEN set varch = FALSE;
+		WHEN 'fin' THEN
+			select * from FinishedTasksV;
 			set bdone = TRUE;
-		when 'arc' then
-			select * from v_tasks_arch;
+		WHEN 'arc' THEN
+			select * from ArchievedTasksV;
 			set bdone = TRUE;
-		else set @error = concat('illegal mode: "', what,'"' );
-		end case;
+		ELSE set @error = concat('illegal mode: "', what,'"' );
+		END CASE;
 		
-		if @error is not NULL then
-			call p_myexception(concat('pv_tasks(): ', @error));
+		IF @error is not NULL THEN
+			CALL riseError(concat('ReadTasks(): ', @error));
         	set bdone = TRUE;
-		end if;
-    end if;
+		END IF;
+    END IF;
     
-    if not bdone then
+    IF not bdone THEN
 		select
 			id, userId, projectId, title, duration, flags,
 			unix_timestamp(liveline) as liveline,
 			unix_timestamp(deadline) as deadline,
 			unix_timestamp(added) as added,
 			lastStarted, lastStopped, scrap
-		  from t_task
+		  from Tasks
 		  where    userId = @taskr_user and flags < 8
 			  and (@taskr_task is NULL or id <> @taskr_task)
 			  and (project is NULL or projectId = project)
@@ -437,36 +431,36 @@ begin
 			   ) 
 		  order by lastStopped ASC
 		  ;
-     end if;
-end //
+     END IF;
+END //
 
-create procedure p_proj_create (
+CREATE PROCEDURE CreateProject (
 	userid	integer unsigned,
 	title	varchar(30)
 )
-begin
-	insert into t_project ( userId, title, added, updated )
+BEGIN
+	insert into Projects ( userId, title, added, updated )
 		values ( userid, title, NULL, NULL );
 			
   	set @res1 := LAST_INSERT_ID();	-- anal tooth brushing (for bug #27362)
-end //
+END //
 
-create procedure p_proj_finish
+CREATE PROCEDURE FinishProject
 (
 	proj_id	integer unsigned
 	)
-begin
-	update t_project set flags = 8 | 16, finished = now()+0
+BEGIN
+	update Projects set flags = 8 | 16, finished = now()+0
 		where id = proj_id;
-end //
+END //
 
-delimiter ;
+DELIMITER ;
 
 /** 
  * Upcoming tasks (excluding the active task)
  * @todo checks, documenting
  */
-create view v_tasks_fini (
+CREATE VIEW FinishedTasksV (
         id, userId, projectId, title, duration, flags,
         liveline,
         deadline,
@@ -478,12 +472,12 @@ as select
         unix_timestamp(deadline) as deadline,
 		unix_timestamp(added) as added,
         lastStarted, lastStopped, scrap
-  from t_task
-    where userId = f_user_id() and flags >= 8 and flags < 16
+  from Tasks
+    where userId = getUserId() and flags >= 8 and flags < 16
     order by lastStopped ASC;
 
 
-create view v_tasks_arch (
+CREATE VIEW ArchievedTasksV (
         id, userId, projectId, title, duration, flags,
         liveline,
         deadline,
@@ -495,19 +489,19 @@ as select
         unix_timestamp(deadline) as deadline,
 		unix_timestamp(added) as added,
         lastStarted, lastStopped, scrap
-  from t_task
-    where userId = f_user_id() and flags >= 16
+  from Tasks
+    where userId = getUserId() and flags >= 16
     order by lastStopped ASC;
 
 /**
  * All projects of the current user
  */
-create view v_projects (
+CREATE VIEW ProjectsV (
 		id, userId, title, flags, finished, added
 )
 as select
 		id, userId, title, flags,
 		unix_timestamp(finished),
 		unix_timestamp(added)
-	from	t_project
-		where	userId = f_user_id();
+	from	Projects
+		where	userId = getUserId();

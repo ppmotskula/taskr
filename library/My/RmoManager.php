@@ -13,28 +13,29 @@
  *
  * RELEASE NOTE: currently, all operations work directly with DB; cache disabled.
  *
- * collectionKey:
- *   <any_legal_identifier>['!'] - exclamation mark means 'no buffering'
- *
- * @todo perhaps it could be a RMO object itself.
  * @todo inline comments
  */
 class My_RmoManager
 {
-    protected $_tree = array();
+    protected $_tree;
     
-    protected $_lists = array();
+    protected $_lists;
     
     /**
      * access database directly, without looking to the cache.
+     * @ignore (internal)
      */
     protected $_directDb;
     
     /**
-     * search cache, store database read results to cache
+     * Search cache, store database read results to cache
+     * @ignore (internal)
      */
     protected $_useCache;
     
+    /**
+     * Initiate the object instance
+     */
     public function __construct( $definitions)
     {
         if ($definitions) {
@@ -42,6 +43,8 @@ class My_RmoManager
         }else{
            throw new exception('RMO');
         }
+        $this->_tree = array();
+        $this->_lists = array();
         $this->_directDb = TRUE;
         $this->_useCache = FALSE;
     }
@@ -84,6 +87,8 @@ class My_RmoManager
 	 */
     protected function _loadList( $keys, $args )
     {
+        My_Dbg::dump($keys);
+        My_Dbg::dump($args);
         if ( $this->_directDb || NULL === ($res = $this->_walk( $keys )) )
         {
             $result = self::_dm()->loadItems( $keys, $args );
