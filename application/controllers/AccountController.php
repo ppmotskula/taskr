@@ -255,7 +255,7 @@ END;
         }
 
         // stop active task if any
-        if ($task = self::$_user->getActiveTask()) {
+        if ($task = self::$_user->activeTask()) {
             $task->stop();
         }
 

@@ -14,6 +14,7 @@
  * @property string $password must not be NULL;
  *      contains salted and hashed password
  * @property string $email email address
+ * @property string $emailTmp temporary, unconfirmed email address
  * @property int $tzDiff difference of user's time from UTC in seconds
  * @property int $added Unix timestamp of when user was created
  * @property int $proUntil Unix timestamp of when user's "Pro" status expires
@@ -54,6 +55,11 @@ class Taskr_Model_User extends My_MagicAbstract
     /**
      * @ignore (magic property)
      */
+    protected $_magicAdded;
+
+    /**
+     * @ignore (magic property)
+     */
     protected $_magicProUntil;
 
     /**
@@ -62,57 +68,33 @@ class Taskr_Model_User extends My_MagicAbstract
     protected $_magicCredits;
 
     /**
-     * @ignore (magic property)
-     */
-    protected $_magicAdded;
-    
-
-   /**
-    * Saves user info
-    */
-    public function save()
-    {
-        return Taskr_Model_DataMapper::getInstance()->saveUser( $this );
-    }
-     
-    /**
-     * Adds a new task
+     * Retrieves the user's active task from the mapper
      *
-     * @param string|array|Taskr_Model_Task $task
      * @return Taskr_Model_Task
-     * @throws Exception if $task is neither an instance of
-     * Taskr_Model_Task nor an array or string suitable for creating one
      */
-    public function addTask($task)
+    public function activeProject()
     {
-        if (is_string($task)) {
-            // string to array
-            $task = array('title' => $task);
-        }
-
-        if (is_array($task)) {
-            // array to Taskr_Model_Task
-            $task = new Taskr_Model_Task($task);
-        }
-
-        if (!is_a($task, 'Taskr_Model_Task') || !isset($task->title)) {
-            throw new Exception('Invalid task');
-        }
-
-        $task->userId = $this->id;
-
-        return $task->save();
+        return Taskr_Model_DataMapper::getInstance()->activeProject($this);
     }
 
-   /**
-    * Retrieves the user's active task from the mapper
-    * @usedby TaskController
-    *
-    * @return Taskr_Model_Task
-    */
-    public function getActiveTask()
+    /**
+     * Retrieves the user's active task from the mapper
+     *
+     * @return Taskr_Model_Task
+     */
+    public function activeTask()
     {
         return Taskr_Model_DataMapper::getInstance()->activeTask();
+    }
+
+    /**
+     * Retrieves the user's unfinished projects from the mapper
+     *
+     * @return array of Taskr_Model_Project
+     */
+    public function unfinishedProjects()
+    {
+        return Taskr_Model_DataMapper::getInstance()->unfinishedProjects($this);
     }
 
     /**
@@ -122,7 +104,7 @@ class Taskr_Model_User extends My_MagicAbstract
      */
     public function upcomingTasks()
     {
-        return Taskr_Model_DataMapper::getInstance()->loadList( 'tasks.active' );
+        return Taskr_Model_DataMapper::getInstance()->loadList('tasks.active');
     }
 
     /**
@@ -132,40 +114,33 @@ class Taskr_Model_User extends My_MagicAbstract
      */
     public function finishedTasks()
     {
-        return Taskr_Model_DataMapper::getInstance()->loadList( 'tasks.finished' );
+        return Taskr_Model_DataMapper::getInstance()->loadList('tasks.finished');
+    }
+
+    /**
+     * Retrieves the user's archived projects from the mapper
+     *
+     * @param int $fromTs Unix timestamp of oldest task to retrieve
+     * @return array of Taskr_Model_Task
+     */
+    public function archivedProjects($fromTs = NULL, $toTs = NULL)
+    {
+        return Taskr_Model_DataMapper::getInstance()->
+                archivedProjects($this, $fromTs, $toTs);
     }
 
     /**
      * Retrieves the user's archived tasks from the mapper
      *
-     * @param int $fromDate Unix timestamp of oldest task to retrieve
+     * @param int $fromTs Unix timestamp of oldest task to retrieve
      * @return array of Taskr_Model_Task
      */
     public function archivedTasks($fromTs = NULL, $toTs = NULL)
     {
-        return Taskr_Model_DataMapper::getInstance()->archivedTasks($this, $fromTs, $toTs);
+        return Taskr_Model_DataMapper::getInstance()->
+                archivedTasks($this, $fromTs, $toTs);
     }
 
-    /**
-     * Archives finished tasks
-     *
-     * @return int number of tasks archived
-     */
-    public function archiveFinishedTasks()
-    {
-        Taskr_Model_DataMapper::getInstance()->tasksArchive( $this->id );
-    }
-
-    /**
-     * Retrieves the user's active task from the mapper
-     * @todo IMPLEMENT!
-     * @return Taskr_Model_Task
-     */
-    public function activeProject()
-    {
-        return Taskr_Model_DataMapper::getInstance()->activeProject($this);
-    }
-    
     /**
      * Adds a new project
      * @todo IMPL
@@ -203,25 +178,68 @@ class Taskr_Model_User extends My_MagicAbstract
     }
 
     /**
-     * Retrieves the user's unfinished projects from the mapper
+     * Adds a new task
      *
-     * @return array of Taskr_Model_Project
+     * @param string|array|Taskr_Model_Task $task
+     * @return Taskr_Model_Task
+     * @throws Exception if $task is neither an instance of
+     * Taskr_Model_Task nor an array or string suitable for creating one
      */
-    public function unfinishedProjects()
+    public function addTask($task)
     {
-        return Taskr_Model_DataMapper::getInstance()->unfinishedProjects($this);
+        if (is_string($task)) {
+            // string to array
+            $task = array('title' => $task);
+        }
+
+        if (is_array($task)) {
+            // array to Taskr_Model_Task
+            $task = new Taskr_Model_Task($task);
+        }
+
+        if (!is_a($task, 'Taskr_Model_Task') || !isset($task->title)) {
+            throw new Exception('Invalid task');
+        }
+
+        $task->userId = $this->id;
+
+        return $task->save();
     }
 
     /**
-     * Retrieves the user's archived projects from the mapper
+     * Starts a task, stopping the currently active task first if there is one
      *
-     * @param int $fromTs Unix timestamp of oldest task to retrieve
-     * @return array of Taskr_Model_Task
+     * @param int $id
+     * @return Taskr_Model_Task
      */
-    public function archivedProjects($fromTs = NULL, $toTs = NULL)
+    public function startTask($id)
     {
-        return Taskr_Model_DataMapper::getInstance()->
-                archivedProjects($this, $fromTs, $toTs);
+        if (NULL != ($task = $this->activeTask($this))) {
+            $task->stop();
+        }
+
+        if (NULL !=
+            ($task = Taskr_Model_DataMapper::getInstance()->findTask($id))
+        ) {
+            if ($task->user->id == $this->id) {
+                $task->start();
+                return $task;
+            }
+        }
+
+        throw new Exception(
+            "Task $id is not found or does not belong to user {$this->username}"
+        );
+    }
+
+    /**
+     * Archives finished tasks
+     *
+     * @return int number of tasks archived
+     */
+    public function archiveFinishedTasks()
+    {
+        Taskr_Model_DataMapper::getInstance()->tasksArchive($this->id);
     }
 
     /**
@@ -233,7 +251,13 @@ class Taskr_Model_User extends My_MagicAbstract
     {
         return $this->proUntil > time();
     }
+
+   /**
+    * Saves user info
+    */
+    public function save()
+    {
+        return Taskr_Model_DataMapper::getInstance()->saveUser($this);
+    }
+
 }
-
-
-

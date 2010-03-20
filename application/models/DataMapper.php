@@ -40,7 +40,7 @@ class Taskr_Model_DataMapper
      * @todo check out why we'll get the session manager error if using $_rmo
      */
     protected static $_rmoManager;
-    
+
     protected static $_sessionUser; // @todo kontrollida vajalikkus ja eemaldada
 
     /**
@@ -61,11 +61,11 @@ class Taskr_Model_DataMapper
         }
         self::$_db = $db;
     }
-    
+
    /**
     * Initiate working context for user. Called by ...Controller::init()
     *
-    * This method should be called for authenticated user only. 
+    * This method should be called for authenticated user only.
     * @usedby TaskController.init()
     */
     public function initContext(Taskr_Model_User $user)
@@ -76,7 +76,7 @@ class Taskr_Model_DataMapper
     	if ( self::$_sessionUser && $user !== self::$_sessionUser ) {
     	    throw new Zend_Exception('Extra call to User::initContext()');
     	}
-    	
+
     	if ( !self::$_rmoManager ) { self::_initRmoManager(); }
     	$this->initWorkContext(intval($user->id));
     }
@@ -85,13 +85,13 @@ class Taskr_Model_DataMapper
     {
         self::$_rmoManager = new My_RmoManager( array(
             'tasks.live' => array( 'task.live' ),
-            'tasks.active' => array( 
+            'tasks.active' => array(
                            'task.overdue', 'task.today', 'task.active', 'task.future' ),
             'tasks.finished' => array( 'task.finished' ),
             'tasks.archived' => array( 'task.archived' ),
              ) );
     }
-    
+
     /**
      * Execute prepared statement and ceheck for results
      * Fetch error message or array of (possible) results
@@ -101,13 +101,13 @@ class Taskr_Model_DataMapper
     {
         $stmt->execute();             // excute the prepared stuff
         $stmt->closeCursor();
-        
+
         $stmt = self::$_db->prepare('SELECT @error, @res1, @res1');
         $stmt->execute();
         $data = $stmt->fetch();
         $stmt->closeCursor();
         $result = $data['@error'];
-         
+
         if ( NULL === $result ) {
             $result = array( $data['@res1'], $data['@res2'] );
         } elseif ( !$noExceptions ) {
@@ -115,7 +115,7 @@ class Taskr_Model_DataMapper
         }
         return $result;
     }
-    
+
     /**
      * Execute prepared statement and fetch a recordset
      * @return recordset
@@ -125,13 +125,13 @@ class Taskr_Model_DataMapper
         $stmt->execute();              // excute the prepared stuff
         $data = $stmt->fetchAll();
         $stmt->closeCursor();
-        
+
         if ( count($data) === 0 ) {
             $data = NULL;
         }
         return $data;
     }
-    
+
     /**
      * Set up authenticated user connection environment in database server
      *
@@ -144,8 +144,8 @@ class Taskr_Model_DataMapper
         $stmt->bindValue(1, $userId, PDO::PARAM_INT);
         $this->_execForResult($stmt);
     }
-    
-    
+
+
     /**
      * Returns the instance of the class, setting it up on the first call
      * @return Taskr_Model_DataMapper
@@ -173,7 +173,7 @@ class Taskr_Model_DataMapper
     }
 
     /****** SECTION: User ******/
-    
+
     /**
      * Save user data and set user id, if it was missing.
      * @return int | string
@@ -192,17 +192,17 @@ class Taskr_Model_DataMapper
         $stmt->bindValue(2, $obj->password, PDO::PARAM_STR);
         $stmt->bindValue(3, $obj->tzDiff, PDO::PARAM_INT);
         $stmt->bindValue(4, $obj->emailTmp, PDO::PARAM_STR);
-        if( !$requireKey ) { 
+        if( !$requireKey ) {
             $stmt->bindValue(5, $obj->email, PDO::PARAM_STR);
         }
         if( !is_string($data = $this->_execForResult($stmt)) ) {
             $data = $data[0];
-            
+
             if( $requireKey ) { $obj->id = $data; }
         }
         return $data;
     }
-     
+
     /**
      * Fetch user data and create class instance
      * @return NULL | Taskr_Model_User
@@ -215,13 +215,13 @@ class Taskr_Model_DataMapper
             ', unix_timestamp(added) as added' .
             ' FROM t_user WHERE id = ?' );
         $stmt->bindValue(1, $userId, PDO::PARAM_INT);
-        
-        if ( $data = $this->_execForRows($stmt) ) { 
+
+        if ( $data = $this->_execForRows($stmt) ) {
             $data = new Taskr_Model_User($data[0]);
         }
         return $data;
     }
-    
+
     /**
      * Load a list of itemns (only tasklists by now)
      *
@@ -231,10 +231,10 @@ class Taskr_Model_DataMapper
     {
         return self::$_rmoManager->loadList( $listname );
     }
-    
+
     /**
      * Fetch user data and create class instance.
-     * 
+     *
      * NB: this method should be called only in login sequnce, since it
      * initiates DB interface engine!
      *
@@ -246,17 +246,17 @@ class Taskr_Model_DataMapper
     	    if ( !self::$_rmoManager ) {
     	        self::_initRmoManager();
     	    }
-    	    
+
             $stmt = self::$_db->prepare('call pv_user_byname(?)');
             $stmt->bindValue(1, $userName, PDO::PARAM_STR);
-            
-            if ( $data = $this->_execForRows($stmt) ) { 
+
+            if ( $data = $this->_execForRows($stmt) ) {
                 $user = new Taskr_Model_User($data[0]);
             }
         }
         return $user;
     }
-    
+
     /**
      * Fetches the user by email from the database
      *
@@ -271,8 +271,8 @@ class Taskr_Model_DataMapper
             ' FROM t_user WHERE email = ? AND ' .
             '(proUntil is NULL OR proUntil > now())' );
         $stmt->bindValue(1, $email, PDO::PARAM_STR);
-        
-        if ( $data = $this->_execForRows($stmt) ) { 
+
+        if ( $data = $this->_execForRows($stmt) ) {
             $data = new Taskr_Model_User($data[0]);
         }
         return $data;
@@ -295,7 +295,7 @@ class Taskr_Model_DataMapper
     }
 
     /****** SECTION: Task ******/
-    
+
     /**
      * Fetches the given user's active task from the database
      *
@@ -307,7 +307,7 @@ class Taskr_Model_DataMapper
     {
         $stmt = self::$_db->prepare('call pv_activetask()');
         $res = $this->_execForRows($stmt);
-        
+
         if ($res) {
             $res = $res[0];
             $res = new Taskr_Model_Task($res);
@@ -333,7 +333,7 @@ class Taskr_Model_DataMapper
         $requireKey = NULL; $transaction = FALSE;
 
         $i = 0; $scrap = $obj->scrap;
-        
+
         if ( strlen($scrap) >= self::SHORT_SCRAP_LIMIT )
         {
             if ( $inTransaction = $scrapWasChanged ) {
@@ -359,7 +359,7 @@ class Taskr_Model_DataMapper
             $stmt->bindValue(++$i, $obj->deadline, PDO::PARAM_INT);
             $stmt->bindValue(++$i, $scrap, PDO::PARAM_STR);
             $data = $this->_execForResult($stmt);
-            
+
             $data = $data[0];
 
             if ( !$obj->id ) {
@@ -368,18 +368,18 @@ class Taskr_Model_DataMapper
                 }
                 $obj->id = $data;
             }
-    
+
             if( $inTransaction ) {
                 self::$_db->commit();
             }
-        } 
+        }
         catch ( exception $e )
         {
             if( $inTransaction ) {
                 self::$_db->rollBack(); throw $e;
             }
         }
-        
+
         return $data;
     }
 
@@ -391,12 +391,12 @@ class Taskr_Model_DataMapper
     {
         $stmt = self::$_db->prepare('select longScrap from t_scrap where taskId = ?');
         $stmt->bindValue(1, $taskId, PDO::PARAM_INT);
-        if ( $data = $this->_execForRows($stmt) ) { 
+        if ( $data = $this->_execForRows($stmt) ) {
             $data = $data[0]['longScrap'];
         }
         return $data;
     }
-    
+
     /**
      * Save task data and create class instance
      * @return int | string
@@ -421,7 +421,7 @@ class Taskr_Model_DataMapper
         $stmt->bindValue(3, $obj->flags, PDO::PARAM_INT);
         $this->_execForResult($stmt);
     }
-    
+
     public function tasksArchive( $userId )
     {
         $stmt = self::$_db->prepare(
@@ -429,9 +429,9 @@ class Taskr_Model_DataMapper
         $stmt->bindValue(1, $userId, PDO::PARAM_INT);
         $this->_execForResult($stmt);
     }
-    
+
     /****** SECTION: Project ******/
-    
+
     /**
      * Fetches the given user's active project from the database
      *
@@ -442,7 +442,7 @@ class Taskr_Model_DataMapper
      */
     public function activeProject(Taskr_Model_User $user)
     {
-        $task = $user->getActiveTask();
+        $task = $user->activeTask();
         if (isset($task) && isset($task->project)) {
             return $task->project;
         }
@@ -458,7 +458,7 @@ class Taskr_Model_DataMapper
     public function findProject($id)
     {
         $sql = 'SELECT * FROM v_projects WHERE id = ?';
-        
+
         if ($res = self::$_db->fetchRow($sql, $id)) {
             $res = new Taskr_Model_Project($res);
         }
@@ -494,17 +494,17 @@ class Taskr_Model_DataMapper
         if (NULL == $project->title) {
             throw new Exception('Cannot save project without title');
         }
-        
+
         if ( $project->id ) {
             throw new Exception('Cannot save project repeatedly');
         }
-        
+
         $stmt = self::$_db->prepare('call p_proj_create(?,?)');
-        
+
         $stmt->bindValue(++$i, $project->userId, PDO::PARAM_INT);
         $stmt->bindValue(++$i, $project->title, PDO::PARAM_STR);
         $data = $this->_execForResult($stmt);
-        
+
         $data = $data[0];
 
         if ( !$project->id ) {
@@ -551,9 +551,9 @@ class Taskr_Model_DataMapper
             throw new Exception('The project had no unfinished tasks');
         }
     }
-    
+
     /****** SECTION: Lists ******/
-    
+
     /**
      * Fetches the given user's archived projects completed between $fromTs and
      * $toTs from the database.
@@ -573,7 +573,7 @@ class Taskr_Model_DataMapper
         $params[':userId'] = $user->id;
         $sql = 'SELECT * FROM v_projects' .
             ' WHERE userId = :userId';
-        
+
         if (isset($fromTs)) {
             $params[':fromTs'] = $fromTs;
             $sql .= ' AND finished >= :fromTs';
@@ -584,7 +584,7 @@ class Taskr_Model_DataMapper
             $params[':toTs'] = $toTs;
             $sql .= ' AND finished <= :toTs';
         }
-        
+
         $sql .= ' ORDER BY finished ASC';
         $rows = self::$_db->fetchAll($sql, $params);
 
@@ -596,7 +596,7 @@ class Taskr_Model_DataMapper
 
         return $result;
     }
-    
+
     /**
      * Fetches the given user's archived tasks completed between $fromTs and
      * $toTs from the database.
@@ -638,7 +638,7 @@ class Taskr_Model_DataMapper
         return $result;
     }
 
-    
+
 
     /**
      * Fetches the given user's unfinished projects from the database
@@ -682,7 +682,7 @@ class Taskr_Model_DataMapper
         }
         return $result;
     }
-    
+
 
 }
 

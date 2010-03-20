@@ -1,6 +1,6 @@
 <div id="tasklist">
 
-<?php if ($activeTask = $this->user->getActiveTask()) : ?>
+<?php if ($activeTask = $this->user->activeTask()) : ?>
 <div id="active">
 <form method="post" action="<?php echo $this->url(
     array(

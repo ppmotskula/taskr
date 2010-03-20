@@ -61,12 +61,27 @@ class Taskr_Model_Task extends My_MagicAbstract
     /**
      * @ignore (magic property)
      */
+    protected $_magicTitle;
+
+    /**
+     * @ignore (magic property)
+     */
+    protected $_magicScrap;
+
+    /**
+     * @ignore (magic property)
+     */
     protected $_magicLiveline;
 
     /**
      * @ignore (magic property)
      */
     protected $_magicDeadline;
+
+    /**
+     * @ignore (magic property)
+     */
+    protected $_magicAdded;
 
     /**
      * @ignore (magic property)
@@ -89,21 +104,6 @@ class Taskr_Model_Task extends My_MagicAbstract
      */
     protected $_magicDuration;
 
-    /**
-     * @ignore (magic property)
-     */
-    protected $_magicTitle;
-
-    /**
-     * @ignore (magic property)
-     */
-    protected $_magicScrap;
-
-    /**
-     * @ignore (magic property)
-     */
-    protected $_magicAdded;
-    
     /**
      * @ignore (internal)
      */
@@ -193,7 +193,6 @@ class Taskr_Model_Task extends My_MagicAbstract
         return $this->_user;
     }
     
-   
     /**
      * Tells the mapper to start the task
      */
@@ -203,7 +202,7 @@ class Taskr_Model_Task extends My_MagicAbstract
     }
 
     /**
-     * Stop the task
+     * Tells the mapper to stop the task
      */
     public function stop()
     {

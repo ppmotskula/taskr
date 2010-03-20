@@ -47,7 +47,7 @@ class ArchiveController extends Zend_Controller_Action
         self::$_mapper = Taskr_Model_DataMapper::getInstance();
 
         // initialise timer if current user has an active task
-        if ($task = self::$_user->getActiveTask()) {
+        if ($task = self::$_user->activeTask()) {
             $this->view->headScript()
                 ->appendFile($this->view->baseUrl() . '/js/timer.js')
             ;

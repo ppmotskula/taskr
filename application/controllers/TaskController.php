@@ -45,7 +45,7 @@ class TaskController extends Zend_Controller_Action
         }
 
         // initialise timer if current user has an active task
-        if ($task = self::$_user->getActivetask()) {
+        if ($task = self::$_user->activeTask()) {
             $this->view->headScript()
                 ->appendFile($this->view->baseUrl() . '/js/timer.js')
             ;
@@ -69,7 +69,7 @@ class TaskController extends Zend_Controller_Action
     public function editAction()
     {
         // bail out if current user has no active task
-        if (!$task = self::$_user->getActiveTask()) {
+        if (!$task = self::$_user->activeTask()) {
             $this->_redirector->gotoSimple('index', 'task');
         }
 

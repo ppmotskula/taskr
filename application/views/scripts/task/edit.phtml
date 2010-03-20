@@ -3,18 +3,14 @@
 <p>Editing: <b><?php echo $this->task->title; ?></b><span id="timer"></span><br />
 Project:
 <?php if($unfinishedProjects = $this->user->unfinishedProjects()): ?>
-  <label for="projects">choose</label>
-  <select name="projects" id="projects" accesskey="p">
-    <option value="0"<?php if (!$this->task->project) { echo ' selected'; } ?>>(no project)
-    </option>
-    <?php foreach($unfinishedProjects as $project): ?>
-      <option value="<?php echo $project->id; ?>"
-        <?php if ($project->id == $this->task->project->id) { echo ' selected'; } ?>>
-        <?php echo $project->title; ?>
-      </option>
-    <?php endforeach; ?>
-  </select>
-  <?php if($this->user->isPro()) { echo 'or '; } ?>
+<label for="projects">choose</label>
+<select name="projects" id="projects" accesskey="p">
+    <option value="0"<?php if (!$this->task->project) { echo ' selected'; } ?>>(no project)</option>
+<?php foreach($unfinishedProjects as $project): ?>
+    <option value="<?php echo $project->id; ?>"<?php if ($project->id == $this->task->project->id) { echo ' selected'; } ?>><?php echo $project->title; ?></option>
+<?php endforeach; ?>
+</select>
+<?php if($this->user->isPro()) { echo 'or '; } ?>
 <?php endif; ?>
 <?php if($this->user->isPro() || !$unfinishedProjects): ?>
 <label for="project">create new</label>
