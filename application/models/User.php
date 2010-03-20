@@ -19,14 +19,8 @@
  * @property int $proUntil Unix timestamp of when user's "Pro" status expires
  * @property int $credits number of referral credits user has
  */
-class Taskr_Model_User extends My_RmoAbstract
+class Taskr_Model_User extends My_MagicAbstract
 {
-
-    /**
-     * @ignore
-     */
-    const NAME = 'user';
-    
     /**
      * @ignore (magic property)
      */
@@ -72,85 +66,6 @@ class Taskr_Model_User extends My_RmoAbstract
      */
     protected $_magicAdded;
     
-    /*
-     * RmoManager
-     * @todo check out why we'll get the session manager error if using $_rmo
-     */
-    // protected $_rmo;
-    protected static $_rmoManager;
-    
-    protected static $_sessionUser;
-
-
-    /**
-     * @see My_RmoInterface
-     */
-    public function getClass()
-    {
-        return self::NAME;
-    }
-    
-   /**
-    * Initiate working context for user. Called by ...Controller::init()
-    *
-    * This method should be called for authenticated user only. 
-    * @usedby TaskController.init()
-    */
-    public function initContext()
-    {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
-        
-    	if ( self::$_sessionUser && $this !== self::$_sessionUser ) {
-    	    throw new Zend_Exception('Extra call to User::initContext()');
-    	}
-    	self::$_sessionUser = $this;
-    	
-    	if ( !$this->rmoM() ) { self::_initRmoManager(); }
-    	
-    	$this->_setDispatcher( Taskr_Model_DataMapper::getInstance() );
-    	$this->_dispatch( 'connection' );
-    	
-     	// return Taskr_Model_DataMapper::getInstance()
-     	return $this->getDispatcher()
-     	           ->initWorkContext(intval($this->id));
-     	// return $this->dispatch( 'connection' );
-    }
-    
-    public function rmoM()
-    {
-        return self::$_rmoManager;
-    }
-    
-    protected static function _initRmoManager()
-    {
-        self::$_rmoManager = new My_RmoManager( array(
-            'tasks.live' => array( 'task.live' ),
-            'tasks.active' => array( 
-                           'task.overdue', 'task.today', 'task.active', 'task.future' ),
-            'tasks.finished' => array( 'task.finished' ),
-            'tasks.archived' => array( 'task.archived' ),
-             ) );
-    }
-    
-   /**
-    * Retrieves user object by name
-    *
-    * @usedby AccountController.signupAction()
-    * @usedby Taskr_Auth_Adapter_Password.authenticate()
-    * @return Taskr_Model_User
-    * @todo static self pointer may be questionable here
-    */
-    public static function getByUsername($username)
-    {
-    	if ( !($user = self::$_sessionUser) || $user->userName != $username ) {
-    	    if ( !self::$_rmoManager ) {
-    	        self::_initRmoManager();
-    	    }
-    	    $user = Taskr_Model_DataMapper::getInstance()->findUserByUsername( $username );
-    	    // $user = self::dispatchMsg( self::NAME, array( 'GET', $username ) );
-     	}
-     	return $user;
-    }
 
    /**
     * Saves user info
@@ -158,7 +73,6 @@ class Taskr_Model_User extends My_RmoAbstract
     public function save()
     {
         return Taskr_Model_DataMapper::getInstance()->saveUser( $this );
-        // return $this->dispatch( 'SAVE' );
     }
      
     /**
@@ -208,8 +122,7 @@ class Taskr_Model_User extends My_RmoAbstract
      */
     public function upcomingTasks()
     {
-        return $this->rmoM()->loadList( 'tasks.active' );
-        // return $this->dispatch( 'load', 'tasks.active' );
+        return Taskr_Model_DataMapper::getInstance()->loadList( 'tasks.active' );
     }
 
     /**
@@ -219,8 +132,7 @@ class Taskr_Model_User extends My_RmoAbstract
      */
     public function finishedTasks()
     {
-        return $this->rmoM()->loadList( 'tasks.finished' );
-        // return $this->dispatch( 'load', 'tasks.finished' );
+        return Taskr_Model_DataMapper::getInstance()->loadList( 'tasks.finished' );
     }
 
     /**
@@ -232,7 +144,6 @@ class Taskr_Model_User extends My_RmoAbstract
     public function archivedTasks($fromTs = NULL, $toTs = NULL)
     {
         return Taskr_Model_DataMapper::getInstance()->archivedTasks($this, $fromTs, $toTs);
-        // return $this->rmoM()->loadList( 'tasks.archived' );
     }
 
     /**
@@ -242,7 +153,6 @@ class Taskr_Model_User extends My_RmoAbstract
      */
     public function archiveFinishedTasks()
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
         Taskr_Model_DataMapper::getInstance()->tasksArchive( $this->id );
     }
 
@@ -310,9 +220,6 @@ class Taskr_Model_User extends My_RmoAbstract
      */
     public function archivedProjects($fromTs = NULL, $toTs = NULL)
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
-        My_Dbg::dump( date(DateTime::W3C,$fromTs), '$fromTs');
-        My_Dbg::dump( date(DateTime::W3C,$toTs), '$toTs');
         return Taskr_Model_DataMapper::getInstance()->
                 archivedProjects($this, $fromTs, $toTs);
     }
@@ -327,4 +234,6 @@ class Taskr_Model_User extends My_RmoAbstract
         return $this->proUntil > time();
     }
 }
+
+
 

@@ -64,9 +64,6 @@ class My_RmoManager
      */
     public function loadList( $listKey, $params = NULL )
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $listKey);
-        // if ( is_array($listKey) ) { My_Dbg::dump($listKey); }
-        
         $result = array();
         
         if ( NULL !== ($lists = self::_find($listKey, $this->_lists)) ) {
@@ -82,66 +79,11 @@ class My_RmoManager
         return $result;
     }
     
-    /**
-     * Retrieve the single item.
-     * @todo implement this
-     */
-    public function loadItem( $itemClassKey, $args = NULL )
-    {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $itemClassKey);
-        return self::_dm()->readRecord($itemClassKey, $args);
-    }
-    
-    /**
-     * Update the item
-     * @todo implement this
-     */
-    public function updateItem( $itemClassKey, $args = NULL )
-    {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $itemClassKey);
-    }
-    
-    /**
-     * Update the object data
-     *
-     * @param string|NULL $args property names (space delimited) - all if missing
-     * @todo implement this
-     */
-    public function updateObject( $object, $names = NULL )
-    {
-    	$className = $object->getClass();
-        $magicProps = $object->getMagic();
-        $parms = array();
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $className);
-        
-        if ( $object->id )    // ... the object already has an identity
-        {     
-            foreach( $magicProps as $prop => $value ) {
-                if ( $prop != 'id'
-                  && (!names || strpos( $names, ' ' . $prop . ' ' ) !== FALSE) )
-                {
-                    $parms[$prop] = $value;  // don't update primary key!
-                }
-            }     
-            self::_dm()->updateRecord($className, $parms);
-        }
-        else                  // ... the object is not written into database yet
-        {
-            foreach( $magicProps as $prop => $value ) {
-                if ( $value ) {
-                    $parms[$prop] = $value;
-                }
-            }
-            self::_dm()->createRecord($className, $parms);
-        }
-    }
-    
+	/**
+	 * Internal part of list loader
+	 */
     protected function _loadList( $keys, $args )
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__ );
-        //My_Dbg::dump($keys,'$keys');
-        //My_Dbg::dump($args,'$args');
-    
         if ( $this->_directDb || NULL === ($res = $this->_walk( $keys )) )
         {
             $result = self::_dm()->loadItems( $keys, $args );
@@ -159,7 +101,6 @@ class My_RmoManager
     	$node = &$this->_tree; $i = count($keys);
     	
         foreach( $keys as $k ) {
-            //My_Dbg::dump( $node, '@' . $k );
             $i--;
             if ( !array_key_exists($k, $node) ) {
                 if( !$set ) { return NULL; }

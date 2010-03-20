@@ -9,8 +9,7 @@
 /**
  * Model class: Task
  *
- * @property int $id primary key (autoincrement)
- * @property Taskr_Model_User $user owner of this task
+ * @property-read Taskr_Model_User $user owner of this task
  *      (each task must have one user)
  * @property Taskr_Model_Project $project project, to which this task belongs
  *      (each task must have zero or one projects)
@@ -24,8 +23,12 @@
  * @property bool $finished
  * @property bool $archived
  * @property int $duration in seconds
+ *
+ * @property int $id internal database key
+ * @property int $projectId internal database key
+ * @property int $flags internal status 
  */
-class Taskr_Model_Task extends My_RmoAbstract
+class Taskr_Model_Task extends My_MagicAbstract
 {
     /**
      * Constants used to define status scheme.
@@ -36,17 +39,10 @@ class Taskr_Model_Task extends My_RmoAbstract
      * When these values are changed, data repository (mapper) should be modified accordingly.   
      * For the sake of debugging, these values are human readable right now.
      */
-    const ILLEGAL       = '*BAD*';
-    const NORMAL        = 'normal';
-    const FUTURE        = 'future';
-    const TODAY         = 'today';
-    const OVERDUE       = 'overdue';
-    const FINISHED      = 'finished';
-    const ARCHIVED      = 'archived';
-    const FINISH_FLAG   = 8;
-    const ARCHIVE_FLAG  = 16;
-    const NAME          = 'task';
 
+    const FINISH_FLAG   = 8;            // used in _magicFlags
+    const ARCHIVE_FLAG  = 16;           // used in _magicFlags
+    
     /**
      * @ignore (magic property)
      */
@@ -83,7 +79,8 @@ class Taskr_Model_Task extends My_RmoAbstract
     protected $_magicLastStopped;
 
     /**
-     * @ignore (magic property)
+     * @ignore (internal property)
+     * Accessed by getFinished(), getArchived()
      */
     protected $_magicFlags = 0;
 
@@ -111,43 +108,17 @@ class Taskr_Model_Task extends My_RmoAbstract
      * @ignore (internal)
      */
     protected $_scrapChanged = FALSE;   // necessary for avoiding senseless db traffic
+    
+    /**
+     * @ignore (internal)
+     */
+    protected $_user;                   // user instance so we won't access db redundantly
 
 
     public function __construct(array $magic = NULL)
     {
         parent::__construct( $magic );
         $this->_scrapChanged = FALSE;
-    }
-
-    /**
-     * @see My_RmoInterface
-     */
-    public function getClass()
-    {
-        return self::NAME;
-    }
-    
-    /**
-     * NB: It has to be asserted that if liveline is set, it is always before deadline!
-     * @see My_RmoInterface
-     */
-    public function getStatus()
-    {
-        assert( $this->id !== NULL );
-        
-        $res = NULL;
-		if ($this->_magicFlags >= ARCHIVE_FLAG)     { $res = self::ARCHIVED; }
-		elseif ($this->_magicFlags & FINISH_FLAG)   { $res = self::FINISHED; }
-		elseif ($this->deadline) {
-			if ($this->deadline <= time() )          { $res = self::OVERDUE; }
-			elseif ($this->deadline <= time()+86400) { $res = self::TODAY; }
-		}
-		if (!$res) {
-		    if ($this->liveline > time()+86400)  { $res = self::FUTURE; }
-		    else                                 { $res = self::NORMAL; }
-		}
-		assert( $res !== NULL );
-    	return $res;
     }
 
     /**
@@ -166,9 +137,8 @@ class Taskr_Model_Task extends My_RmoAbstract
      */
     public function getScrap()
     {
-        // My_Dbg::trc(__CLASS__, __FUNCTION__, $this->id);
         $ch = $this->_scrapChanged; $l = strlen($this->_magicScrap);
-        //My_Dbg::log("changed: {$ch}, len={$l}");
+
         if ( !$this->_scrapChanged
          &&  strlen($this->_magicScrap) == Taskr_Model_DataMapper::SHORT_SCRAP_LIMIT )
         {
@@ -181,7 +151,6 @@ class Taskr_Model_Task extends My_RmoAbstract
     
     public function setScrap( $newContent )
     {
-        //My_Dbg::trc(__CLASS__, __FUNCTION__, $this->id);
         if ( $newContent != $this->_magicScrap ) {
             $this->_magicScrap = $newContent;
             $this->_scrapChanged = TRUE;
@@ -217,7 +186,11 @@ class Taskr_Model_Task extends My_RmoAbstract
      */
     public function getUser()
     {
-        return Taskr_Model_DataMapper::getInstance()->findUserById( $this->_magicUserId );
+        if ( !$this->_user ) {
+            $this->_user = Taskr_Model_DataMapper::getInstance()->
+               findUserById( $this->_magicUserId );
+        }
+        return $this->_user;
     }
     
    
@@ -242,8 +215,6 @@ class Taskr_Model_Task extends My_RmoAbstract
      */
     public function finish($archive = TRUE)
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $this->id);
-        
         if ($this->project) {
             $this->project->finish($this);
         }
@@ -262,7 +233,6 @@ class Taskr_Model_Task extends My_RmoAbstract
      */
     public function archive($archive = TRUE)
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $this->id);
         $stat = $this->_magicFlags & ~self::ARCHIVE_FLAG;
         $this->_magicFlags = $stat | ($archive ? self::ARCHIVE_FLAG : 0);
         return $this->save();
@@ -275,7 +245,6 @@ class Taskr_Model_Task extends My_RmoAbstract
     public function save()
     {
         Taskr_Model_DataMapper::getInstance()->saveTask($this, $this->_scrapChanged);
-        // $this->dispatch( 'SAVE' );
         $this->_scrapChanged = FALSE;
         return $this;
     }
@@ -311,7 +280,6 @@ class Taskr_Model_Task extends My_RmoAbstract
      */
     public function scrapLine($outlen = 80, $separator = ' - ')
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $this->id);
     	$scrap = $result = ''; 
     	
     	if( APPLICATION_ENV == 'development' ) {

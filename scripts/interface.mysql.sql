@@ -327,6 +327,14 @@ begin
 	end if;
 end //
 
+/**
+ * Search content (headers and scraps)
+ */
+create procedure searchContent (
+)
+begin
+end //
+
 /**	
  * Start a new task, stopping the old one if necessary.
  * @return unix_timestamp in @res1

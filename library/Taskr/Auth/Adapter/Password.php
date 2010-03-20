@@ -55,8 +55,7 @@ class Taskr_Auth_Adapter_Password implements Zend_Auth_Adapter_Interface
         }
 
         // try to find user by username, bail out if not found
-        $user = Taskr_Model_User::getByUsername($this->_username);
-        //$user = $this->_mapper->findUserByUsername($this->_username);
+		$user = $this->_mapper->findUserByUsername($this->_username);
         if (!is_a($user, 'Taskr_Model_User')) {
             return new Zend_Auth_Result(
                 Zend_Auth_Result::FAILURE_IDENTITY_NOT_FOUND,

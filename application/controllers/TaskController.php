@@ -38,12 +38,11 @@ class TaskController extends Zend_Controller_Action
         // bail out if nobody is logged in
         if (Zend_Auth::getInstance()->hasIdentity()) {
             self::$_user = Zend_Auth::getInstance()->getIdentity();
-            self::$_user->initContext();
+        	self::$_mapper = Taskr_Model_DataMapper::getInstance();
+            self::$_mapper->initContext(self::$_user);
         } else {
             self::$_redirector->gotoSimple('index', 'index');
         }
-
-        self::$_mapper = Taskr_Model_DataMapper::getInstance();
 
         // initialise timer if current user has an active task
         if ($task = self::$_user->getActivetask()) {
@@ -270,7 +269,6 @@ class TaskController extends Zend_Controller_Action
                     self::$_user->addTask($task);
                 } catch(Exception $e) {
                     // just ignore the exception -- task couldn't be created
-                    My_Dbg::log('TaskController: COULD NOT add a task #' . $task->id );
                 }
             }
         }

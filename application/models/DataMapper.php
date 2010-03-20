@@ -35,13 +35,20 @@ class Taskr_Model_DataMapper
      */
     protected static $_instance;
 
+    /*
+     * RmoManager
+     * @todo check out why we'll get the session manager error if using $_rmo
+     */
+    protected static $_rmoManager;
+    
+    protected static $_sessionUser; // @todo kontrollida vajalikkus ja eemaldada
+
     /**
      * @ignore (internal)
      * constructor prevents direct creation of object
      */
     protected function __construct()
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
         $application = new Zend_Application(
             APPLICATION_ENV,
             APPLICATION_PATH . '/configs/application.ini'
@@ -55,23 +62,35 @@ class Taskr_Model_DataMapper
         self::$_db = $db;
     }
     
-    /**
-     * Dispatcher entry point
-     */
-    public function dispatch( $client, $what, $parameters = NULL )
+   /**
+    * Initiate working context for user. Called by ...Controller::init()
+    *
+    * This method should be called for authenticated user only. 
+    * @usedby TaskController.init()
+    */
+    public function initContext(Taskr_Model_User $user)
     {
-        if ( is_object($client) )
-        {
-            $clientClassName = get_class($clientInstance = $client);
+        if( !$user ) {
+            throw new Exception('no user');
         }
-        else
-        {
-            $clientClassName = $client; $clientInstance = NULL;
-        }
-        assert( is_string($what) );
-        My_Dbg::trc($clientClassName . '**dispatch**', $what);
+    	if ( self::$_sessionUser && $user !== self::$_sessionUser ) {
+    	    throw new Zend_Exception('Extra call to User::initContext()');
+    	}
+    	
+    	if ( !self::$_rmoManager ) { self::_initRmoManager(); }
+    	$this->initWorkContext(intval($user->id));
     }
-    
+
+    protected static function _initRmoManager()
+    {
+        self::$_rmoManager = new My_RmoManager( array(
+            'tasks.live' => array( 'task.live' ),
+            'tasks.active' => array( 
+                           'task.overdue', 'task.today', 'task.active', 'task.future' ),
+            'tasks.finished' => array( 'task.finished' ),
+            'tasks.archived' => array( 'task.archived' ),
+             ) );
+    }
     
     /**
      * Execute prepared statement and ceheck for results
@@ -80,7 +99,6 @@ class Taskr_Model_DataMapper
      */
     protected function _execForResult($stmt, $noExceptions = FALSE)
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
         $stmt->execute();             // excute the prepared stuff
         $stmt->closeCursor();
         
@@ -104,7 +122,6 @@ class Taskr_Model_DataMapper
      */
     protected function _execForRows($stmt)
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
         $stmt->execute();              // excute the prepared stuff
         $data = $stmt->fetchAll();
         $stmt->closeCursor();
@@ -123,7 +140,6 @@ class Taskr_Model_DataMapper
      */
     public function initWorkContext( $userId )
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $userId);
         $stmt = self::$_db->prepare('call p_user_connect(?)');
         $stmt->bindValue(1, $userId, PDO::PARAM_INT);
         $this->_execForResult($stmt);
@@ -146,8 +162,6 @@ class Taskr_Model_DataMapper
 
     public function loadItems( array $which, $args = NULL )
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, implode('.', $which ));
-       	
        	switch ( $k = array_shift($which) ) {
        	case 'task':
        	    $res = $this->_loadTasks( $which, $args );
@@ -166,8 +180,6 @@ class Taskr_Model_DataMapper
      */
     public function saveUser( Taskr_Model_User $obj )
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $obj->username . '(#' . $obj->id . ')' );
-        
         if ( $obj->id ) {      // just save changes
             $requireKey = FALSE;
             $stmt = self::$_db->prepare('call p_user_save(?,?,?,?,?)');
@@ -197,8 +209,6 @@ class Taskr_Model_DataMapper
      */
     public function findUserById( $userId )
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $userId);
-        
         $stmt = self::$_db->prepare(
             'SELECT id, username, password, email, emailTmp, tzDiff, credits' .
             ', unix_timestamp(proUntil) as proUntil' .
@@ -213,20 +223,38 @@ class Taskr_Model_DataMapper
     }
     
     /**
-     * Fetch user data and create class instance
+     * Load a list of itemns (only tasklists by now)
+     *
+     * @return NULL|array of items
+     */
+    public function loadlist( $listname )
+    {
+        return self::$_rmoManager->loadList( $listname );
+    }
+    
+    /**
+     * Fetch user data and create class instance.
+     * 
+     * NB: this method should be called only in login sequnce, since it
+     * initiates DB interface engine!
+     *
      * @return NULL | Taskr_Model_User
      */
     public function findUserByUsername( $userName )
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $userName);
-        
-        $stmt = self::$_db->prepare('call pv_user_byname(?)');
-        $stmt->bindValue(1, $userName, PDO::PARAM_STR);
-        
-        if ( $data = $this->_execForRows($stmt) ) { 
-            $data = new Taskr_Model_User($data[0]);
+    	if ( !($user = self::$_sessionUser) || $user->userName != $username ) {
+    	    if ( !self::$_rmoManager ) {
+    	        self::_initRmoManager();
+    	    }
+    	    
+            $stmt = self::$_db->prepare('call pv_user_byname(?)');
+            $stmt->bindValue(1, $userName, PDO::PARAM_STR);
+            
+            if ( $data = $this->_execForRows($stmt) ) { 
+                $user = new Taskr_Model_User($data[0]);
+            }
         }
-        return $data;
+        return $user;
     }
     
     /**
@@ -237,8 +265,6 @@ class Taskr_Model_DataMapper
      */
     public function findUserByEmail($email)
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
-        
         $stmt = self::$_db->prepare(
             'SELECT id, username, password, email, emailTmp' .
             ', tzDiff, activeTask, proUntil, credits, added' .
@@ -279,10 +305,8 @@ class Taskr_Model_DataMapper
      */
     public function activeTask()
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
         $stmt = self::$_db->prepare('call pv_activetask()');
         $res = $this->_execForRows($stmt);
-        // My_Dbg::dump($res, '***** from activeTASKS');
         
         if ($res) {
             $res = $res[0];
@@ -306,7 +330,6 @@ class Taskr_Model_DataMapper
      */
     public function saveTask( $obj, $scrapWasChanged = NULL )
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $obj->id);
         $requireKey = NULL; $transaction = FALSE;
 
         $i = 0; $scrap = $obj->scrap;
@@ -366,11 +389,9 @@ class Taskr_Model_DataMapper
      */
     public function scrapRead( $taskId )
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $taskId);
         $stmt = self::$_db->prepare('select longScrap from t_scrap where taskId = ?');
         $stmt->bindValue(1, $taskId, PDO::PARAM_INT);
         if ( $data = $this->_execForRows($stmt) ) { 
-            My_dbg::dump($data, '===SCRAP====');
             $data = $data[0]['longScrap'];
         }
         return $data;
@@ -382,8 +403,6 @@ class Taskr_Model_DataMapper
      */
     public function startTask( $id )
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $id);
-        
         $stmt = self::$_db->prepare('call p_task_start(?)');
         $stmt->bindValue(1, $id, PDO::PARAM_INT);
         $this->_execForResult($stmt);
@@ -396,8 +415,6 @@ class Taskr_Model_DataMapper
      */
     public function stopTask( $obj )
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $obj->id . '.' . $obj->flags);
-        
         $stmt = self::$_db->prepare('call p_task_stop(?,?,?)');
         $stmt->bindValue(1, $obj->id, PDO::PARAM_INT);
         $stmt->bindValue(2, $obj->projectId, PDO::PARAM_INT);
@@ -407,8 +424,6 @@ class Taskr_Model_DataMapper
     
     public function tasksArchive( $userId )
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $userId);
-        
         $stmt = self::$_db->prepare(
             'update t_task set flags = flags | 16 where userId = ? and flags < 16');
         $stmt->bindValue(1, $userId, PDO::PARAM_INT);
@@ -442,8 +457,6 @@ class Taskr_Model_DataMapper
      */
     public function findProject($id)
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $id);
-        
         $sql = 'SELECT * FROM v_projects WHERE id = ?';
         
         if ($res = self::$_db->fetchRow($sql, $id)) {
@@ -460,8 +473,6 @@ class Taskr_Model_DataMapper
      */
     public function projectDuration(Taskr_Model_Project $project)
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $project->id);
-        
         $sql = 'SELECT SUM(duration) FROM t_task WHERE projectId = ?';
         $result = self::$_db->fetchOne($sql, $project->id);
 
@@ -475,8 +486,6 @@ class Taskr_Model_DataMapper
      */
     public function saveProject(Taskr_Model_Project $project)
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__, $project->title);
-        
         $user = $project->user; $i = 0;
 
         if (!is_a($user, Taskr_Model_User) || NULL == $user->id) {
@@ -561,8 +570,6 @@ class Taskr_Model_DataMapper
      */
     public function archivedProjects(Taskr_Model_User $user, $fromTs, $toTs)
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
-        
         $params[':userId'] = $user->id;
         $sql = 'SELECT * FROM v_projects' .
             ' WHERE userId = :userId';
@@ -606,8 +613,6 @@ class Taskr_Model_DataMapper
      */
     public function archivedTasks(Taskr_Model_User $user, $fromTs, $toTs)
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
-        
         $params[':userId'] = $user->id;
         $sql = 'SELECT * FROM v_tasks_arch' .
             ' WHERE userId = :userId';
@@ -643,8 +648,6 @@ class Taskr_Model_DataMapper
      */
     public function unfinishedProjects(Taskr_Model_User $user)
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
-        
         $sql = 'SELECT * FROM v_projects' .
             ' WHERE userId = ? AND finished IS NULL' .
             ' ORDER BY title ASC';
@@ -667,12 +670,11 @@ class Taskr_Model_DataMapper
     protected function _loadTasks(array $which, $parms)
     {
         $result = array(); $k = array_shift($which);
-
         $stmt = self::$_db->prepare('call pv_tasks(?,?)');
         $stmt->bindValue(1, substr($k,0,3), PDO::PARAM_STR);
         $stmt->bindValue(2, $parms, PDO::PARAM_INT);
         $rows = $this->_execForRows($stmt);
-        // My_Dbg::dump($rows, '***** from PV_TASKS');
+
         if ( $rows ) {
             foreach ($rows as $row) {
                 array_push($result, new Taskr_Model_Task($row));

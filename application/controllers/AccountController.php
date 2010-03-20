@@ -33,13 +33,12 @@ class AccountController extends Zend_Controller_Action
      */
     public function init()
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
         self::$_redirector = $this->_helper->Redirector;
         if (Zend_Auth::getInstance()->hasIdentity()) {
             self::$_user = Zend_Auth::getInstance()->getIdentity();
-            self::$_user->initContext();
+        	self::$_mapper = Taskr_Model_DataMapper::getInstance();
+            self::$_mapper->initContext(self::$_user);
         }
-        self::$_mapper = Taskr_Model_DataMapper::getInstance();
     }
 
     /**
@@ -47,11 +46,8 @@ class AccountController extends Zend_Controller_Action
      */
     public function indexAction()
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
-        My_Dbg::dump($this->view->formData, '$this->view->formData');
         // bail out if no user is signed in
         if (!isset(self::$_user)) {
-            My_Dbg::log('self::$_redirector->gotoSimple');
             self::$_redirector->gotoSimple('index', 'index');
         }
 
@@ -59,7 +55,6 @@ class AccountController extends Zend_Controller_Action
 
         // if not a POST request, prepopulate and show the form
         if (!$request->isPost()) {
-            My_Dbg::log('not POST, RETURN');
             $formData['email'] = self::$_user->email;
             $this->view->formData = $formData;
             return;
@@ -67,7 +62,6 @@ class AccountController extends Zend_Controller_Action
 
         // process form submissions
         $formData = $request->getPost();
-        My_Dbg::dump($formData, '$formData = $request->getPost()');
 
         // if password was given, check it for minimum
         if ($password = $formData['password']) {
@@ -136,7 +130,6 @@ class AccountController extends Zend_Controller_Action
      */
     public function loginAction()
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
         // forward to Task controller if user is logged in already
         if (isset(self::$_user)) {
             self::$_redirector->gotoSimple('index', 'task');
@@ -256,7 +249,6 @@ END;
      */
     public function logoutAction()
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
         // bail out if nobody is logged in
         if (!isset(self::$_user)) {
             self::$_redirector->gotoSimple('index', 'index');
@@ -278,7 +270,6 @@ END;
      */
     public function signupAction()
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
         // forward to Task controller if user is logged in already
         if (isset(self::$_user)) {
             self::$_redirector->gotoSimple('index', 'task');
@@ -287,7 +278,6 @@ END;
         // only process POST requests
         $request = $this->getRequest();
         if ($request->isPost()) {
-        	My_Dbg::log('$request->isPost()');
             $formData = $request->getPost();
 
             // check username
@@ -347,7 +337,6 @@ END;
      */
     public function resetPasswordAction()
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
         // forward to Task controller if user is logged in already
         if (isset(self::$_user)) {
             self::$_redirector->gotoSimple('index', 'task');
@@ -409,7 +398,6 @@ END;
      */
     public function confirmEmailAction()
     {
-        My_Dbg::trc(__CLASS__, __FUNCTION__);
         // get parameters from the URL
         $uid = $this->_getParam('uid');
         $key = $this->_getParam('key');
@@ -475,7 +463,6 @@ END;
                 'uid' => $user->id,
                 'key' => Taskr_Util::hashPassword($email),
             ));
-        My_Dbg::log($link);
         $mail = new Zend_Mail('utf-8');
         $mail
             ->setFrom('support@taskr.eu', 'Taskr')
@@ -497,7 +484,6 @@ END
         try {
             $mail->send();
         } catch(Exception $e) {
-            My_Dbg::log('failed to send e-mail!');
             return FALSE;
         }
 
