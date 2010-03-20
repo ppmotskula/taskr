@@ -351,16 +351,16 @@ class Taskr_Model_DataMapper
     /**
      * Save task data and create class instance
      *
-     * @param Taskr_Model_Task $obj
+     * @param Taskr_Model_Task $task
      * @param bool $scrapWasChanged
      * @return int task id
      * @throw exception on database error
      */
-    public function saveTask(Taskr_Model_Task $obj, $scrapWasChanged = NULL)
+    public function saveTask(Taskr_Model_Task $task, $scrapWasChanged = NULL)
     {
         $requireKey = NULL; $transaction = FALSE;
 
-        $i = 0; $scrap = $obj->scrap;
+        $i = 0; $scrap = $task->scrap;
 
         if ( strlen($scrap) >= self::SHORT_SCRAP_LIMIT )
         {
@@ -371,30 +371,30 @@ class Taskr_Model_DataMapper
         }
         try
         {
-            if ( $obj->id ) {      // just save changes
+            if ( $task->id ) {      // just save changes
                 if ( $inTransaction ) {
-                    $this->_scrapSave( NULL, $obj->scrap );
+                    $this->_scrapSave( NULL, $task->scrap );
                 }
                 $stmt = self::$_db->prepare('call SaveTask(?,?,?,?,?)');
-                $stmt->bindValue(++$i, $obj->flags, PDO::PARAM_INT);
+                $stmt->bindValue(++$i, $task->flags, PDO::PARAM_INT);
             } else {                // create new record
                 $stmt = self::$_db->prepare('call CreateTask(?,?,?,?,?)');
-                $stmt->bindValue(++$i, $obj->title, PDO::PARAM_STR);
+                $stmt->bindValue(++$i, $task->title, PDO::PARAM_STR);
                 $requireKey = TRUE;
             }
-            $stmt->bindValue(++$i, $obj->projectId, PDO::PARAM_INT);
-            $stmt->bindValue(++$i, $obj->liveline, PDO::PARAM_INT);
-            $stmt->bindValue(++$i, $obj->deadline, PDO::PARAM_INT);
+            $stmt->bindValue(++$i, $task->projectId, PDO::PARAM_INT);
+            $stmt->bindValue(++$i, $task->liveline, PDO::PARAM_INT);
+            $stmt->bindValue(++$i, $task->deadline, PDO::PARAM_INT);
             $stmt->bindValue(++$i, $scrap, PDO::PARAM_STR);
             $data = $this->_execForResult($stmt);
 
             $data = $data[0];
 
-            if ( !$obj->id ) {
+            if ( !$task->id ) {
                 if ( $inTransaction ) {
-                    $this->_scrapSave( $data, $obj->scrap );
+                    $this->_scrapSave( $data, $task->scrap );
                 }
-                $obj->id = $data;
+                $task->id = $data;
             }
 
             if( $inTransaction ) {
@@ -443,12 +443,12 @@ class Taskr_Model_DataMapper
      * Stop or finish the task
      * @return int | string
      */
-    public function stopTask(Taskr_Model_Task $obj)
+    public function stopTask(Taskr_Model_Task $task)
     {
         $stmt = self::$_db->prepare('call StopTask(?,?,?)');
-        $stmt->bindValue(1, $obj->id, PDO::PARAM_INT);
-        $stmt->bindValue(2, $obj->projectId, PDO::PARAM_INT);
-        $stmt->bindValue(3, $obj->flags, PDO::PARAM_INT);
+        $stmt->bindValue(1, $task->id, PDO::PARAM_INT);
+        $stmt->bindValue(2, $task->projectId, PDO::PARAM_INT);
+        $stmt->bindValue(3, $task->flags, PDO::PARAM_INT);
         $this->_execForResult($stmt);
     }
 
@@ -520,7 +520,7 @@ class Taskr_Model_DataMapper
      */
     public function saveProject(Taskr_Model_Project $project)
     {
-        $user = $project->user; $i = 0;
+        $user = $project->user;
 
         if (!is_a($user, Taskr_Model_User) || NULL == $user->id) {
             throw new Exception('Cannot save project with no owner');
@@ -535,8 +535,8 @@ class Taskr_Model_DataMapper
 
         $stmt = self::$_db->prepare('call CreateProject(?,?)');
 
-        $stmt->bindValue(++$i, $project->userId, PDO::PARAM_INT);
-        $stmt->bindValue(++$i, $project->title, PDO::PARAM_STR);
+        $stmt->bindValue(1, $project->userId, PDO::PARAM_INT);
+        $stmt->bindValue(2, $project->title, PDO::PARAM_STR);
         $data = $this->_execForResult($stmt);
 
         $data = $data[0];

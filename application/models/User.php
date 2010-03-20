@@ -68,9 +68,9 @@ class Taskr_Model_User extends My_MagicAbstract
     protected $_magicCredits;
 
     /**
-     * Retrieves the user's active task from the mapper
+     * Retrieves the user's active project from the mapper
      *
-     * @return Taskr_Model_Task
+     * @return Taskr_Model_Project
      */
     public function activeProject()
     {
@@ -209,7 +209,7 @@ class Taskr_Model_User extends My_MagicAbstract
     /**
      * Starts a task, stopping the currently active task first if there is one
      *
-     * @param int $id
+     * @param int $idog the task to be started
      * @return Taskr_Model_Task
      */
     public function startTask($id)
