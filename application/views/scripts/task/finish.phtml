@@ -1,0 +1,21 @@
+<div id="editor">
+<form action="" method="post">
+<p>Finishing: <b><?php echo $this->task->title; ?></b><?php
+if ($this->task->project) {
+    echo " (#{$this->task->project->title})";
+} ?><span id="timer"></span></p>
+<p><textarea name="scrap" id="scrap" rows="20" cols="60" accesskey="e"><?php
+echo $this->task->scrap; ?></textarea></p>
+<?php if (isset($this->formErrors)) {
+    echo "<ul class=\"error\">\n";
+    if (isset($this->formErrors['project'])) {
+        echo '<li>' . $this->formErrors['project'] . "</li>\n";
+    }
+    echo "</ul>\n";
+} ?>
+<p class="center">
+<input name="submit" type="submit" value="save" accesskey="s" />
+<input name="submit" type="submit" value="cancel" accesskey="c" />
+</p>
+</form>
+</div> <!-- /editor -->

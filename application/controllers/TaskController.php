@@ -4,32 +4,40 @@
  * @author Peeter P. Mõtsküla <ppm@taskr.eu>
  * @todo copyright & license
  * @version 0.1.0
+ *
  */
+
 /**
  * Task controller
+ *
  */
 class TaskController extends Zend_Controller_Action
 {
+
     /**
      * @ignore (internal)
      * @var Taskr_Model_User
+     *
      */
-    protected static $_user;
+    protected static $_user = null;
 
     /**
      * @ignore (internal)
      * @var Taskr_Model_DataMapper
+     *
      */
-    protected static $_mapper;
+    protected static $_mapper = null;
 
     /**
      * @ignore (internal)
      * @var Zend_Controller_Action_Helper_Redirector
+     *
      */
-    protected static $_redirector;
+    protected static $_redirector = null;
 
     /**
      * Initializes the controller
+     *
      */
     public function init()
     {
@@ -57,6 +65,7 @@ class TaskController extends Zend_Controller_Action
 
     /**
      * Shows the task list
+     *
      */
     public function indexAction()
     {
@@ -65,6 +74,7 @@ class TaskController extends Zend_Controller_Action
 
     /**
      * Shows or processes the edit form
+     *
      */
     public function editAction()
     {
@@ -89,12 +99,19 @@ class TaskController extends Zend_Controller_Action
 
             // choose action according to submit button label
             switch ($formData['submit']) {
+                case 'cancel':
+                    self::$_redirector->gotoSimple('index', 'task');
+                case 'stop':
+                    $task->stop();
+                    self::$_redirector->gotoSimple('index', 'task');
+                case 'finish':
+                    self::$_redirector->gotoSimple('finish', 'task');
                 case 'save':
                     $task->scrap = $formData['scrap'];
 
                     if ($formData['project']) {
                         // new project creation requested
-                        if ( !$formData['finish'] ) {
+                        if (!$formData['finish']) {
                             // there is no point to add project when finishing a task
                             if (!$project =
                                 self::$_user->addProject($formData['project'])
@@ -152,16 +169,7 @@ class TaskController extends Zend_Controller_Action
                         break;
                     }
 
-                    if ( $formData['finish']) {
-                        $task->finish();
-                    }else{
-                        $task->save();
-                    }
-                    self::$_redirector->gotoSimple('index', 'task');
-                case 'cancel':
-                    self::$_redirector->gotoSimple('index', 'task');
-                case 'stop':
-                    $task->stop();
+                    $task->save();
                     self::$_redirector->gotoSimple('index', 'task');
                 // ignore any other buttons including 'edit'
             }
@@ -171,11 +179,14 @@ class TaskController extends Zend_Controller_Action
         $this->view->user = self::$_user;
         $this->view->task = $task;
         $this->view->formData = $formData;
-        if (isset($formErrors)) { $this->view->formErrors = $formErrors; }  //!val quick fix
+        if (isset($formErrors)) {
+            $this->view->formErrors = $formErrors;
+        }
     }
 
     /**
      * Adds a new task
+     *
      */
     public function addAction()
     {
@@ -278,10 +289,11 @@ class TaskController extends Zend_Controller_Action
 
     /**
      * Starts a task
+     *
      */
     public function startAction()
     {
-        if ( $taskId = $this->_getParam('id', 0) ) {
+        if ($taskId = $this->_getParam('id', 0)) {
             Taskr_Model_DataMapper::getInstance()->startTask($taskId);
         }
 
@@ -290,6 +302,7 @@ class TaskController extends Zend_Controller_Action
 
     /**
      * Hides (archives) finished tasks
+     *
      */
     public function hideAction()
     {
@@ -298,14 +311,47 @@ class TaskController extends Zend_Controller_Action
         self::$_redirector->gotoSimple('index', 'task');
     }
 
+    /**
+     * Shows or processes the finish form
+     *
+     */
+    public function finishAction()
+    {
+        // bail out if current user has no active task
+        if (!$task = self::$_user->activeTask()) {
+            $this->_redirector->gotoSimple('index', 'task');
+        }
+
+        // handle POST requests
+        $request = $this->getRequest();
+        if ($request->isPost()) {
+            $formData = $request->getPost();
+
+            // protect scraps from HTML injection
+            if (isset($formData['scrap'])) {
+                $formData['scrap'] = strtr($formData['scrap'], array(
+                    '<' => '&lt;',
+                    '>' => '&gt;',
+                    '&' => '&amp;',
+                ));
+            }
+
+            // choose action according to submit button label
+            switch ($formData['submit']) {
+                case 'cancel':
+                    self::$_redirector->gotoSimple('index', 'task');
+                case 'save':
+                    $task->scrap = $formData['scrap'];
+                    $task->finish();
+                    self::$_redirector->gotoSimple('index', 'task');
+                // ignore any other buttons including 'finish'
+            }
+        }
+
+        // set view parameters and show edit form
+        $this->view->user = self::$_user;
+        $this->view->task = $task;
+        $this->view->formData = $formData;
+    }
 
 }
-
-
-
-
-
-
-
-
-
