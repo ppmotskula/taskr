@@ -33,10 +33,11 @@ class AccountController extends Zend_Controller_Action
      */
     public function init()
     {
+		self::$_mapper = Taskr_Model_DataMapper::getInstance();
+		
         self::$_redirector = $this->_helper->Redirector;
         if (Zend_Auth::getInstance()->hasIdentity()) {
             self::$_user = Zend_Auth::getInstance()->getIdentity();
-            self::$_mapper = Taskr_Model_DataMapper::getInstance();
             self::$_mapper->initContext(self::$_user);
         }
     }
