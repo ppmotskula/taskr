@@ -40,7 +40,7 @@ class Taskr_Model_Task extends My_MagicAbstract
     /**
      * @ignore (magic property)
      */
-    protected $_magicUserId;
+    protected $_magicUser;
 
     /**
      * @ignore (magic property)
@@ -102,11 +102,6 @@ class Taskr_Model_Task extends My_MagicAbstract
      */
     protected $_scrapChanged;           // necessary for avoiding senseless db traffic
     
-    /**
-     * @ignore (internal)
-     */
-    protected $_user;                   // user instance so we won't access db redundantly
-
     /**
      * Initiate a Task instance
      */
@@ -189,18 +184,6 @@ class Taskr_Model_Task extends My_MagicAbstract
     public function setArchived()
     {
         throw new Exception('Trying to set a read-only property');
-    }
-    
-    /**
-     * @property-read Taskr_Model_User user
-     */
-    public function getUser()
-    {
-        if ( !$this->_user ) {
-            $this->_user = Taskr_Model_DataMapper::getInstance()->
-               findUserById( $this->_magicUserId );
-        }
-        return $this->_user;
     }
     
     /**

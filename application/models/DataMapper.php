@@ -340,8 +340,14 @@ class Taskr_Model_DataMapper
      */
     protected function _initTaskInstance(array $row)
     {
-        $flags = $row['flags'];
-        unset($row['flags']);
+        $usrid = $row['userId'];    unset($row['userId']);
+        $user = self::$_sessionUser;
+        
+        if ($usrid !== $user->id) {             // wery unlikely, but may happen
+            $user = $this->findUserById($usrid);
+        }
+        $flags = $row['flags'];     unset($row['flags']);
+        $row['user'] = $user;
         $row['finished'] = (bool)($flags & self::FINISH_FLAG);
         $row['archived'] = (bool)($flags & self::ARCHIVE_FLAG);
         return new Taskr_Model_Task($row);
