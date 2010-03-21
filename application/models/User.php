@@ -169,7 +169,7 @@ class Taskr_Model_User extends My_MagicAbstract
 
         if ($this->isPro() || !count($this->unfinishedProjects())) {
             // user is Pro or has no unfinished projects, go ahead
-            $project->userId = $this->id;
+            $project->user = $this;
             Taskr_Model_DataMapper::getInstance()->saveProject($project);
             return $project;
         } else {

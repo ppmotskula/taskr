@@ -549,8 +549,10 @@ class Taskr_Model_DataMapper
     {
         $sql = 'SELECT * FROM ProjectsV WHERE id = ?';
 
-        if ($res = self::$_db->fetchRow($sql, $id)) {
-            $res = new Taskr_Model_Project($res);
+        if ($row = self::$_db->fetchRow($sql, $id)) {
+            unset($row['userId']);
+            $res = new Taskr_Model_Project($row);
+            $res->user = self::$_sessionUser;
         }
         return $res;
     }
@@ -591,7 +593,9 @@ class Taskr_Model_DataMapper
 
         $stmt = self::$_db->prepare('call CreateProject(?,?)');
 
-        $stmt->bindValue(1, $project->userId, PDO::PARAM_INT);
+        $usrid = $project->user ? $project->user->id : NULL;
+
+        $stmt->bindValue(1, $usrid, PDO::PARAM_INT);
         $stmt->bindValue(2, $project->title, PDO::PARAM_STR);
         $data = $this->_execForResult($stmt);
 
@@ -681,7 +685,10 @@ class Taskr_Model_DataMapper
         // construct return array
         $result = array();
         foreach ($rows as $row) {
-            array_push($result, new Taskr_Model_Project($row));
+            unset($row['userId']);
+            $project = new Taskr_Model_Project($row);
+            $project->user = $user;
+            array_push($result, $project);
         }
 
         return $result;
@@ -746,7 +753,10 @@ class Taskr_Model_DataMapper
         // construct and return result array
         $result = array();
         foreach ($rows as $row) {
-            array_push($result, new Taskr_Model_Project($row));
+            unset($row['userId']);
+            $proj = new Taskr_Model_Project($row);
+            $proj->user = $user;
+            array_push($result, $proj);
         }
         return $result;
 

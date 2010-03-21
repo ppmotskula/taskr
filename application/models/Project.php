@@ -27,7 +27,7 @@ class Taskr_Model_Project extends My_MagicAbstract
     /**
      * @ignore (magic property)
      */
-    protected $_magicUserId;
+    protected $_magicUser;
 
     /**
      * @ignore (magic property)
@@ -64,14 +64,6 @@ class Taskr_Model_Project extends My_MagicAbstract
     public function getDuration()
     {
         return Taskr_Model_DataMapper::getInstance()->projectDuration($this);
-    }
-    
-    /**
-     * @property-read Taskr_Model_User user
-     */
-    public function getUser()
-    {
-        return Taskr_Model_DataMapper::getInstance()->findUserById( $this->_magicUserId );
     }
     
     /**
