@@ -38,7 +38,7 @@ class TaskController extends Zend_Controller_Action
         // bail out if nobody is logged in
         if (Zend_Auth::getInstance()->hasIdentity()) {
             self::$_user = Zend_Auth::getInstance()->getIdentity();
-        	self::$_mapper = Taskr_Model_DataMapper::getInstance();
+            self::$_mapper = Taskr_Model_DataMapper::getInstance();
             self::$_mapper->initContext(self::$_user);
         } else {
             self::$_redirector->gotoSimple('index', 'index');
@@ -95,17 +95,17 @@ class TaskController extends Zend_Controller_Action
                     if ($formData['project']) {
                         // new project creation requested
                         if ( !$formData['finish'] ) {
-                        	// there is no point to add project when finishing a task
-							if (!$project =
-								self::$_user->addProject($formData['project'])
-							) {
-								// couldn't create project, show error message
-								$formErrors['project'] =
-									'To create new projects, you must either ' .
-									'finish an existing project or ' .
-									'sign up for Taskr Pro.';
-							}
-						}
+                            // there is no point to add project when finishing a task
+                            if (!$project =
+                                self::$_user->addProject($formData['project'])
+                            ) {
+                                // couldn't create project, show error message
+                                $formErrors['project'] =
+                                    'To create new projects, you must either ' .
+                                    'finish an existing project or ' .
+                                    'sign up for Taskr Pro.';
+                            }
+                        }
                     } elseif ($formData['projects']) {
                         // existing project selected
                         $project =
@@ -123,7 +123,7 @@ class TaskController extends Zend_Controller_Action
                         $task->project->finish($task);
                     }
 
-                    $task->projectId = $project->id;
+                    $task->project = $project;
 
                     $liveline = Taskr_Util::dateToTs($formData['liveline']);
                     if (FALSE === $liveline) {
@@ -155,7 +155,7 @@ class TaskController extends Zend_Controller_Action
                     if ( $formData['finish']) {
                         $task->finish();
                     }else{
-                    	$task->save();
+                        $task->save();
                     }
                     self::$_redirector->gotoSimple('index', 'task');
                 case 'cancel':
@@ -191,8 +191,7 @@ class TaskController extends Zend_Controller_Action
 
             if ($taskText) {
                 $task = new Taskr_Model_Task(array(
-                    'userId' => self::$_user->id,
-                    //'user' => self::$_user,
+                    'user' => self::$_user,
                 ));
 
                 // also create scrap if multi-line entry
@@ -268,6 +267,7 @@ class TaskController extends Zend_Controller_Action
                 try {
                     self::$_user->addTask($task);
                 } catch(Exception $e) {
+                    throw $e;
                     // just ignore the exception -- task couldn't be created
                 }
             }

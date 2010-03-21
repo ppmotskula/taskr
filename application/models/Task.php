@@ -27,8 +27,6 @@
  * @property int $duration in seconds
  *
  * @property int $id internal database key
- * @property int $projectId internal database key
- * @property int $flags internal status 
  */
 class Taskr_Model_Task extends My_MagicAbstract
 {
@@ -45,7 +43,7 @@ class Taskr_Model_Task extends My_MagicAbstract
     /**
      * @ignore (magic property)
      */
-    protected $_magicProjectId;
+    protected $_magicProject;
 
     /**
      * @ignore (magic property)
@@ -210,11 +208,10 @@ class Taskr_Model_Task extends My_MagicAbstract
         if ($this->project) {
             $this->project->finish($this);
         }
-        $flags = self::FINISH_FLAG;
-        if ( $archive ) { $flags |= self::ARCHIVE_FLAG; }
+        $this->_magicFinished = TRUE;
+        if ( $archive ) { $this->_magicArchived = TRUE; }
         
-        $this->_magicFlags |= $flags;
-    	$this->stop();
+        $this->stop();
     }
 
     /**
@@ -225,8 +222,7 @@ class Taskr_Model_Task extends My_MagicAbstract
      */
     public function archive($archive = TRUE)
     {
-        $stat = $this->_magicFlags & ~self::ARCHIVE_FLAG;
-        $this->_magicFlags = $stat | ($archive ? self::ARCHIVE_FLAG : 0);
+        $this->_magicArchived = (bool)$archive;
         return $this->save();
     }
 
@@ -241,26 +237,6 @@ class Taskr_Model_Task extends My_MagicAbstract
         return $this;
     }
     
-    /**
-     * Get project instance
-     */
-    public function getProject()
-    {
-        if ( $pid = $this->_magicProjectId ) {
-            return Taskr_Model_DataMapper::getInstance()->findProject($pid);
-        }
-        return NULL;
-    }
-    
-    /**
-     * Set project
-     */
-    public function setProject( $project )
-    {
-        $this->_magicProjectId = $project ? $project->id : NULL;
-    }
-    
-
     /*
      * Show auxiliary scrap indication without control symbols.
      *
@@ -275,24 +251,24 @@ class Taskr_Model_Task extends My_MagicAbstract
      */
     public function makeScrapLine($outlen = 80, $separator = ' - ')
     {
-    	$scrap = $result = ''; 
-    	
-    	if( APPLICATION_ENV == 'development' ) {
-    	    $scrap = "[{$this->id}] ";
-    	}
-    	$scrap = preg_replace('/( )+/', ' ', $scrap . $this->_magicScrap);
-    	
-    	if ( ($txtlen = strlen($scrap)) > 0 ) {     // we have anything to show and...
-    	    if ( $outlen >= 0 ) {
-    	        $outlen -= strlen($this->title) + strlen($separator);
-    	    } else {
-    	        $separator = ''; $outlen = abs($outlen);
-    	    }
-    	    if ( $outlen > 0 ) {                    // ... and we have any room left
-    	        $result = $separator . substr($scrap, 0, $outlen);
-    	    }
-    	}
-    	return $result;
+        $scrap = $result = ''; 
+        
+        if( APPLICATION_ENV == 'development' ) {
+            $scrap = "[{$this->id}] ";
+        }
+        $scrap = preg_replace('/( )+/', ' ', $scrap . $this->_magicScrap);
+        
+        if ( ($txtlen = strlen($scrap)) > 0 ) {     // we have anything to show and...
+            if ( $outlen >= 0 ) {
+                $outlen -= strlen($this->title) + strlen($separator);
+            } else {
+                $separator = ''; $outlen = abs($outlen);
+            }
+            if ( $outlen > 0 ) {                    // ... and we have any room left
+                $result = $separator . substr($scrap, 0, $outlen);
+            }
+        }
+        return $result;
     }
     
 }

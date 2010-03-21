@@ -201,7 +201,7 @@ class Taskr_Model_User extends My_MagicAbstract
             throw new Exception('Invalid task');
         }
 
-        $task->userId = $this->id;
+        $task->user = $this;
 
         return $task->save();
     }

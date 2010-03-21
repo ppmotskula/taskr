@@ -99,11 +99,11 @@ class Taskr_Model_DataMapper
         if( !$user ) {
             throw new Exception('no user');
         }
-    	if ( self::$_sessionUser && $user !== self::$_sessionUser ) {
-    	    throw new Zend_Exception('Extra call to User::initContext()');
-    	}
+        if ( self::$_sessionUser && $user !== self::$_sessionUser ) {
+            throw new Zend_Exception('Extra call to User::initContext()');
+        }
 
-    	$this->_initWorkContext(intval($user->id));
+        $this->_initWorkContext(intval($user->id));
     }
 
     /**
@@ -184,14 +184,14 @@ class Taskr_Model_DataMapper
      */
     public function loadItems(array $which, $args = NULL)
     {
-       	switch ( $k = array_shift($which) ) {
-       	case 'task':
-       	    $res = $this->_loadTasks( $which, $args );
-       	    break;
-       	default:
-       	    throw new exception( "List of {$k} required");
-       	}
-       	return $res;
+        switch ( $k = array_shift($which) ) {
+        case 'task':
+            $res = $this->_loadTasks( $which, $args );
+            break;
+        default:
+            throw new exception( "List of {$k} required");
+        }
+        return $res;
     }
 
     /**
@@ -283,7 +283,7 @@ class Taskr_Model_DataMapper
      */
     public function findUserByUsername($userName)
     {
-    	if ( !($user = self::$_sessionUser) || $user->userName != $username ) {
+        if ( !($user = self::$_sessionUser) || $user->userName != $username ) {
 
             $stmt = self::$_db->prepare('call GetUserByName(?)');
             $stmt->bindValue(1, $userName, PDO::PARAM_STR);
@@ -341,12 +341,17 @@ class Taskr_Model_DataMapper
     protected function _initTaskInstance(array $row)
     {
         $usrid = $row['userId'];    unset($row['userId']);
+        $prjid = $row['projectId']; unset($row['projectId']);
+        $flags = $row['flags'];     unset($row['flags']);
         $user = self::$_sessionUser;
         
+        if ($prjid) {
+            $row['project'] = $this->findProject($prjid);
+        }
         if ($usrid !== $user->id) {             // wery unlikely, but may happen
             $user = $this->findUserById($usrid);
         }
-        $flags = $row['flags'];     unset($row['flags']);
+       
         $row['user'] = $user;
         $row['finished'] = (bool)($flags & self::FINISH_FLAG);
         $row['archived'] = (bool)($flags & self::ARCHIVE_FLAG);
@@ -429,7 +434,10 @@ class Taskr_Model_DataMapper
                 $stmt->bindValue(++$i, $task->title, PDO::PARAM_STR);
                 $requireKey = TRUE;
             }
-            $stmt->bindValue(++$i, $task->projectId, PDO::PARAM_INT);
+            if ($task->project) {
+                $prjid = $task->project->id;
+            }
+            $stmt->bindValue(++$i, $prjid, PDO::PARAM_INT);
             $stmt->bindValue(++$i, $task->liveline, PDO::PARAM_INT);
             $stmt->bindValue(++$i, $task->deadline, PDO::PARAM_INT);
             $stmt->bindValue(++$i, $scrap, PDO::PARAM_STR);
@@ -492,9 +500,10 @@ class Taskr_Model_DataMapper
      */
     public function stopTask(Taskr_Model_Task $task)
     {
+        $prjid = $task->project ? $task->project->id : NULL;
         $stmt = self::$_db->prepare('call StopTask(?,?,?)');
         $stmt->bindValue(1, $task->id, PDO::PARAM_INT);
-        $stmt->bindValue(2, $task->projectId, PDO::PARAM_INT);
+        $stmt->bindValue(2, $prjid, PDO::PARAM_INT);
         $stmt->bindValue(3, $this->_mkTaskFlags($task), PDO::PARAM_INT);
         $this->_execForResult($stmt);
     }
@@ -606,20 +615,20 @@ class Taskr_Model_DataMapper
      */
     public function finishProject(Taskr_Model_Task $task)
     {
-        if (!$task->projectId) {
+        if (!$task->project) {
             throw new Exception('Task had no project');
         }
 
         // count unfinished tasks in the same project
         $sql = 'SELECT COUNT(*) from Tasks' .
             ' WHERE projectId = ? AND flags < 8';
-        $result = self::$_db->fetchOne($sql, $task->projectId);
+        $result = self::$_db->fetchOne($sql, $task->project->id);
 
         if (1 == $result) {
             // this is the last unfinished task of this project,
             // so let's finish the project too
             $stmt = self::$_db->prepare('call FinishProject(?)');
-            $stmt->bindValue(1, $task->projectId, PDO::PARAM_INT);
+            $stmt->bindValue(1, $task->project->id, PDO::PARAM_INT);
             $this->_execForResult($stmt);
             $task->project->finished = $task->lastStopped;
             return TRUE;
