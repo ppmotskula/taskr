@@ -21,10 +21,9 @@
 <div id="content">
 
 <div id="header">
-<?php if (Zend_Auth::getInstance()->hasIdentity()):
-    $user = Zend_Auth::getInstance()->getIdentity(); ?>
+<?php if (Zend_Auth::getInstance()->hasIdentity()): ?>
     <ul>
-        <li><b><?php echo $user->username ; ?></b></li>
+        <li><b><?php echo $user->username; ?></b></li>
         <li><a href="<?php echo $this->url(array(
             'controller' => 'index',
             'action' => 'index',

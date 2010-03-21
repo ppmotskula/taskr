@@ -1,13 +1,14 @@
 <p>Projects and tasks finished on <?php
-$today = Taskr_Util::dateToTs($this->date);
+$today = Taskr_Util::dateToTs($this->date, $this->user->tzDiff);
 echo $this->date;
 ?>
-<?php if ($today - 86400 >= $this->user->added): ?>
+<?php if ($today >= $this->user->added): ?>
  <a href="<?php
 echo $this->url(array(
     'controller'    => 'archive',
     'action'        => 'index',
-    'date'          => Taskr_Util::tsToDate($today - 86400),
+    'date'          => Taskr_Util::tsToDate($today - 86400,
+                       $this->user->tzDiff),
 )); ?>">«</a>
 <?php endif; ?>
 <?php if ($today + 86400 <= time()): ?>
@@ -15,7 +16,8 @@ echo $this->url(array(
 echo $this->url(array(
     'controller'    => 'archive',
     'action'        => 'index',
-    'date'          => Taskr_Util::tsToDate($today + 86400),
+    'date'          => Taskr_Util::tsToDate($today + 86400,
+                       $this->user->tzDiff),
 )); ?>">»</a>
 <?php endif; ?></p>
 

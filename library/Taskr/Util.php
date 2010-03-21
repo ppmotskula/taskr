@@ -91,7 +91,7 @@ class Taskr_Util
      */
     public static function tsToDate($timestamp, $tzDiff = 0)
     {
-        $timestamp .+ $tzDiff;
+        $timestamp += $tzDiff;
         return date('Y-m-d', $timestamp);
     }
 

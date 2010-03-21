@@ -142,7 +142,8 @@ class TaskController extends Zend_Controller_Action
 
                     $task->project = $project;
 
-                    $liveline = Taskr_Util::dateToTs($formData['liveline']);
+                    $liveline = Taskr_Util::dateToTs($formData['liveline'],
+                        self::$_user->tzDiff);
                     if (FALSE === $liveline) {
                         $formErrors['liveline'] =
                             'Liveline: invalid date entered';
@@ -150,7 +151,8 @@ class TaskController extends Zend_Controller_Action
                         $task->liveline = $liveline;
                     }
 
-                    $deadline = Taskr_Util::dateToTs($formData['deadline']);
+                    $deadline = Taskr_Util::dateToTs($formData['deadline'],
+                        self::$_user->tzDiff);
                     if (FALSE === $deadline) {
                         $formErrors['deadline'] =
                             'Deadline: invalid date entered';
@@ -220,8 +222,10 @@ class TaskController extends Zend_Controller_Action
                         "/^(?:(.+) +)?($dateChars*):($dateChars*)(?: +(.+))?$/i",
                         $task->title, $matches)) {
                     $title = trim($matches[1] . ' ' . $matches[4]);
-                    $liveline = Taskr_Util::dateToTs($matches[2]);
-                    $deadline = Taskr_Util::dateToTs($matches[3]);
+                    $liveline = Taskr_Util::dateToTs($matches[2],
+                        self::$_user->tzDiff);
+                    $deadline = Taskr_Util::dateToTs($matches[3],
+                        self::$_user->tzDiff);
                 }
 
                 if (isset($title)
