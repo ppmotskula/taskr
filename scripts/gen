@@ -1,0 +1,1 @@
+mysql --skip-reconnect --user=root --database=taskr_dev < $1.sql

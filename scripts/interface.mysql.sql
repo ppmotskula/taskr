@@ -380,8 +380,7 @@ BEGIN
     declare bdone tinyint default 0;
     declare vdone tinyint default FALSE;
     declare varch tinyint default FALSE;
-    declare t_horiz datetime default date_add(now(), interval 1 day);
-    declare today datetime default Day(Now());
+    declare today datetime default curDate()+0;
 
     IF @taskr_user is NULL THEN
         CALL riseError("ReadTasks(): user context is missing");
@@ -422,11 +421,11 @@ BEGIN
 			  and (@taskr_task is NULL or id <> @taskr_task)
 			  and (project is NULL or projectId = project)
 			  and ( (what = 'ove' and deadline < today)
-			   or   (what = 'tod' and Day(deadline) = today)
-			   or   (what = 'fut' and Day(liveline) > today) 
+			   or   (what = 'tod' and dateDiff(deadline,today) = 0)
+			   or   (what = 'fut' and dateDiff(liveline,today) > 0) 
 			   or   (what = 'act'
-				  and (liveline is NULL or Day(liveline) <= t_horiz)
-				  and (deadline is NULL or Day(deadline) > t_horiz)
+				  and (liveline is NULL or dateDiff(liveline,today) <= 0)
+				  and (deadline is NULL or dateDiff(deadline,today) > 0)
 					 )
 			   ) 
 		  order by lastStopped ASC
