@@ -33,8 +33,7 @@ if (isset($this->formData['deadline'])) {
 } else {
     echo date($this->showDate($this->task->deadline));
 } ?>" />
-<label for="finish" class="info" title="Finished tasks can no longer be activated or edited">Finish?</label>
-<input type="checkbox" name="finish" id="finish" value="1" accesskey="f" /></p>
+</p>
 <?php if (isset($this->formErrors)) {
     echo "<ul class=\"error\">\n";
     if (isset($this->formErrors['project'])) {

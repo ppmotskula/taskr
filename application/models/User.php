@@ -249,7 +249,11 @@ class Taskr_Model_User extends My_MagicAbstract
      */
     public function isPro()
     {
-        return $this->proUntil > time();
+        // return $this->proUntil > time();
+        //
+        // @todo TEMPORARY HACK
+        // all users are Pro until payment collection gets implemented
+        return TRUE;
     }
 
    /**

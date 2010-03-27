@@ -65,7 +65,7 @@ class ArchiveController extends Zend_Controller_Action
         $this->view->taskId = $this->_getParam('id');
         $this->view->date = $this->_getParam('date')
             ? $this->_getParam('date')
-            : Taskr_Util::tsToDate(time(), $tzDiff); // @todo tzDiff
+            : Taskr_Util::tsToDate(time(), self::$_user->tzDiff);
         $this->view->user = self::$_user;
     }
 

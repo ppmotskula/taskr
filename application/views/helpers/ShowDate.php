@@ -11,32 +11,36 @@
  */
 class Zend_View_Helper_ShowDate
 {
+    public $view;
+
     /**
      * Formats a timestamp, honoring user preferences if set
      *
-     * @param int $timestamp Unix timestamp
-     * @return string default timezone: UTC, default date format 'Y-m-d'
+     * @param int $timestamp Unix timestamp, default timezone: UTC
+     * @param string $dateFormat OPTIONAL, default 'Y-m-d'
+     * @return string
      */
-    public function showDate($timestamp)
+    public function showDate($timestamp, $dateFormat = 'Y-m-d')
     {
         // return empty string if timestamp wasn't set
         if (0 == $timestamp) {
             return '';
         }
 
-        // initialize formatting parameters
+        // use current user's tzDiff if possible
         $tzDiff = 0;
-        $dateFormat = 'Y-m-d';
         if (isset($this->view->user)) {
-            $user = $this->view->user;
-            if (isset($user->tzDiff)) {
-                $tzDiff = $user->tzDiff;
-            }
-            if (isset($user->dateFormat)) {
-                $dateFormat = $user->dateFormat;
-            }
+            $tzDiff = $this->view->user->tzDiff;
         }
 
         return date($dateFormat, $timestamp + $tzDiff);
+    }
+
+    /**
+     * initialises $this->view
+     */
+    public function setView(Zend_View_Interface $view)
+    {
+        $this->view = $view;
     }
 }

@@ -18,6 +18,7 @@
           <actionMethod actionName="add"/>
           <actionMethod actionName="start"/>
           <actionMethod actionName="hide"/>
+          <actionMethod actionName="finish"/>
         </controllerFile>
         <controllerFile controllerName="Account">
           <actionMethod actionName="index"/>
@@ -97,6 +98,9 @@
           </viewControllerScriptsDirectory>
           <viewControllerScriptsDirectory forControllerName="About">
             <viewScriptFile forActionName="help"/>
+          </viewControllerScriptsDirectory>
+          <viewControllerScriptsDirectory forControllerName="Task">
+            <viewScriptFile forActionName="finish"/>
           </viewControllerScriptsDirectory>
         </viewScriptsDirectory>
         <viewHelpersDirectory/>

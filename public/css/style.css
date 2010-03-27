@@ -89,6 +89,9 @@ width:100%;
 div.scrap {
 font-size:80%;
 color:#666;
+width:100%;
+max-height:20em;
+overflow-y:auto;
 }
 div#active, div#new, div#upcoming, div#finished, div#tasks, div#projects {
 margin-bottom:0.5em;

@@ -10,6 +10,7 @@
 <span class="actions">
 <input type="submit" name="submit" value="edit" accesskey="e" />
 <input type="submit" name="submit" value="stop" accesskey="p" />
+<input type="submit" name="submit" value="finish" accesskey="f" />
 </span>
 <b>Working on:</b> <?php
 echo $activeTask->title;
@@ -86,24 +87,5 @@ if ($task->liveline || $task->deadline || $task->project) {
 </div> <!-- /upcoming -->
 <?php endif; ?>
 
-<?php if ($finishedTasks = $this->user->finishedTasks()) : ?>
-<div id="finished">
-<form method="post" action="<?php echo $this->url(
-    array(
-        'controller'    => 'task',
-        'action'        => 'hide',
-    )); ?>"><div>
-<span class="actions">
-<input type="submit" name="submit" value="hide" accesskey="h" />
-</span>
-<b>Finished:</b>
-<ul class="tasklist">
-<?php foreach($finishedTasks as $task) : ?>
-    <li><span class="task"><?php echo $task->title; ?> <span class="details">(<?php echo $this->showDuration($task->duration); ?>)</span></span></li>
-<?php endforeach; ?>
-</ul>
-</div></form>
-</div> <!-- /finished -->
-<?php endif; ?>
 
 </div> <!-- /tasklist -->
