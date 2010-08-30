@@ -1,10 +1,11 @@
 <?php
 /**
  * @package Taskr
- * @author Peeter P. Mõtsküla <ppm@taskr.eu> (initial version for sqlite database)
- * @author Villem Alango <valango@gmai.com>  (current version for MySQL database)
- * @todo copyright & license
- * @version 0.1.0
+ * @author Peeter P. Mõtsküla <peeterpaul@motskula.net> (initial version for sqlite database)
+ * @author Villem Alango <valango@gmail.com>  (current version for MySQL database)
+ * @copyright Copyright © 2010 Villem Alango & Peeter P. Mõtsküla
+ * @license http://opensource.org/licenses/bsd-license.html New BSD license
+* @version 0.1.0
  *
  */
 /**

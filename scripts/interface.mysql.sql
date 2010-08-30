@@ -3,7 +3,8 @@
  * @subpackage Mysql
  * @todo inline documenting
  * @author Villem Alango <valango@gmail.com>
- * @copyright Copyright (c) Villem Alango <valango@gmail.com>
+ * @copyright Copyright © 2010 Villem Alango & Peeter P. Mõtsküla
+ * @license http://opensource.org/licenses/bsd-license.html New BSD license
  * @version 0.1.0
  */
 

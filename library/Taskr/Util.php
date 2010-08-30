@@ -3,7 +3,8 @@
  * @package Taskr
  * @subpackage Util
  * @author Peeter P. Mõtsküla <peeterpaul@motskula.net>
- * @todo copyright & license
+ * @copyright Copyright © 2010 Villem Alango & Peeter P. Mõtsküla
+ * @license http://opensource.org/licenses/bsd-license.html New BSD license
  * @version 0.1.0
  */
 /**
